@@ -66,4 +66,15 @@ inductive Value : Term → Prop
 
 attribute [simp] Value.abs Value.true Value.false
 
+@[simp]
+def subst (x : String) (s t : Term) : Term := match t with
+| Term.var y => if x == y then s else t
+| λ→(λ !y : !T, !t₁) => if x == y then t else λ→(λ !y : !T, !(subst x s t₁))
+| λ→(!t₁ !t₂) => λ→(!(subst x s t₁) !(subst x s t₂))
+| λ→(true) | λ→(false) => t
+| λ→(if !t₁ then !t₂ else !t₃) =>
+    λ→(if !(subst x s t₁) then !(subst x s t₂) else !(subst x s t₃))
+
+notation "[" x " := " s "] " t => subst x s t
+
 end Stlc
