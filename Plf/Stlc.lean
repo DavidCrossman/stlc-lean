@@ -1,3 +1,4 @@
+import Mathlib.Logic.Relation
 import Mathlib.Tactic
 
 namespace Stlc
@@ -75,6 +76,22 @@ def subst (x : String) (s t : Term) : Term := match t with
 | λ→(if !t₁ then !t₂ else !t₃) =>
     λ→(if !(subst x s t₁) then !(subst x s t₂) else !(subst x s t₃))
 
-notation "[" x " := " s "] " t => subst x s t
+notation "[" x " := " s "] " t:max => subst x s t
+
+inductive Step : Term → Term → Prop
+| app_cont {x T t v} :
+        Value v → Step λ→((λ !x: !T, !t) !v) λ→(!([x := v] t))
+| app_cong_l {t₁ t₁' t₂} : Step t₁ t₁' → Step λ→(!t₁ !t₂) λ→(!t₁' !t₂)
+| app_cong_r {v t t'} : Value v → Step t t' → Step λ→(!v !t) λ→(!v !t')
+| if_cont_true {t₁ t₂} : Step λ→(if true then !t₁ else !t₂) t₁
+| if_cont_false {t₁ t₂} : Step λ→(if false then !t₁ else !t₂) t₂
+| if_cong {t₁ t₁' t₂ t₃} :
+    Step t₁ t₁' → Step λ→(if !t₁ then !t₂ else !t₃) λ→(if !t₁' then !t₂ else !t₃)
+
+def Steps := Relation.ReflTransGen Step
+
+infixr:10 " ⟶ " => Step
+
+infixr:10 " ⟶* " => Steps
 
 end Stlc
