@@ -94,4 +94,34 @@ infixr:10 " ⟶ " => Step
 
 infixr:10 " ⟶* " => Steps
 
+theorem Value.no_step {v t : Term} : Value v → ¬(v ⟶ t) := by
+  intro hv hvt
+  induction hvt <;> cases hv
+
+theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t₂ := by
+  intro h1 h2
+  induction h1 generalizing t₂ with
+  | app_cont v => cases h2 with
+    | app_cont _ => rfl
+    | app_cong_l h3 => cases h3
+    | app_cong_r _ h3 => cases v.no_step h3
+  | app_cong_l h3 ih => cases h2 with
+    | app_cont _ => cases (Value.abs _ _ _).no_step h3
+    | app_cong_l h4 => rw [ih h4]
+    | app_cong_r v _ => cases v.no_step h3
+  | app_cong_r v h3 ih => cases h2 with
+    | app_cont v2 => cases v2.no_step h3
+    | app_cong_l h4 => cases v.no_step h4
+    | app_cong_r _ h4 => rw [ih h4]
+  | if_cont_true => cases h2 with
+    | if_cont_true => rfl
+    | if_cong h3 => cases Value.true.no_step h3
+  | if_cont_false => cases h2 with
+    | if_cont_false => rfl
+    | if_cong h3 => cases Value.false.no_step h3
+  | if_cong h3 ih => cases h2 with
+    | if_cont_true => cases Value.true.no_step h3
+    | if_cont_false => cases Value.false.no_step h3
+    | if_cong h4 => rw [ih h4]
+
 end Stlc
