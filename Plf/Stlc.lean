@@ -69,7 +69,7 @@ attribute [simp] Value.abs Value.true Value.false
 
 @[simp]
 def subst (x : String) (s t : Term) : Term := match t with
-| Term.var y => if x == y then s else t
+| .var y => if x == y then s else t
 | λ→(λ !y : !T, !t₁) => if x == y then t else λ→(λ !y : !T, !(subst x s t₁))
 | λ→(!t₁ !t₂) => λ→(!(subst x s t₁) !(subst x s t₂))
 | λ→(true) | λ→(false) => t
@@ -80,7 +80,7 @@ notation "[" x " := " s "] " t:max => subst x s t
 
 inductive Step : Term → Term → Prop
 | app_cont {x T t v} :
-        Value v → Step λ→((λ !x: !T, !t) !v) λ→(!([x := v] t))
+    Value v → Step λ→((λ !x: !T, !t) !v) λ→(!([x := v] t))
 | app_cong_l {t₁ t₁' t₂} : Step t₁ t₁' → Step λ→(!t₁ !t₂) λ→(!t₁' !t₂)
 | app_cong_r {v t t'} : Value v → Step t t' → Step λ→(!v !t) λ→(!v !t')
 | if_cont_true {t₁ t₂} : Step λ→(if true then !t₁ else !t₂) t₁
@@ -102,13 +102,13 @@ theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t�
   intro h1 h2
   induction h1 generalizing t₂ with
   | app_cont v => cases h2 with
-    | app_cont _ => rfl
+    | app_cont => rfl
     | app_cong_l h3 => cases h3
     | app_cong_r _ h3 => cases v.no_step h3
   | app_cong_l h3 ih => cases h2 with
-    | app_cont _ => cases (Value.abs _ _ _).no_step h3
+    | app_cont => cases (Value.abs ..).no_step h3
     | app_cong_l h4 => rw [ih h4]
-    | app_cong_r v _ => cases v.no_step h3
+    | app_cong_r v => cases v.no_step h3
   | app_cong_r v h3 ih => cases h2 with
     | app_cont v2 => cases v2.no_step h3
     | app_cong_l h4 => cases v.no_step h4
@@ -123,5 +123,23 @@ theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t�
     | if_cont_true => cases Value.true.no_step h3
     | if_cont_false => cases Value.false.no_step h3
     | if_cong h4 => rw [ih h4]
+
+@[refl, simp]
+theorem Steps.refl {t : Term} : t ⟶* t := Relation.ReflTransGen.refl
+
+theorem Steps.head {t₁ t₂ t₃ : Term} : (t₁ ⟶ t₂) → (t₂ ⟶* t₃) → (t₁ ⟶* t₃) :=
+  Relation.ReflTransGen.head
+
+theorem Steps.cont_iff {t₁ t₂ v : Term} (hv : Value v) (h : t₁ ⟶ t₂) :
+    (t₁ ⟶* v) ↔ (t₂ ⟶* v) := by
+  constructor
+  · intro h2
+    obtain (rfl | ⟨t₃, h3, h4⟩) := h2.cases_head
+    · cases hv.no_step h
+    · rw [h.unique h3]
+      exact h4
+  · intro h2
+    apply Steps.head h
+    exact h2
 
 end Stlc
