@@ -60,12 +60,21 @@ macro_rules
 | `(λ→(!$x:ident)) => pure x
 | `(λ→(!($t:term))) => pure t
 
+@[mk_iff]
 inductive Value : Term → Prop
 | abs x T t : Value λ→(λ !x : !T, !t)
 | true : Value λ→(true)
 | false : Value λ→(false)
 
 attribute [simp] Value.abs Value.true Value.false
+
+def Term.value : Term → «Bool»
+| .true | .false | .abs .. => Bool.true
+| _ => Bool.false
+
+theorem Term.value_iff (t : Term) : t.value ↔ Value t := by
+  rw [Stlc.value_iff]
+  cases t <;> simp [value]
 
 @[simp]
 def subst (x : String) (s t : Term) : Term := match t with
@@ -93,6 +102,14 @@ def Steps := Relation.ReflTransGen Step
 infixr:10 " ⟶ " => Step
 
 infixr:10 " ⟶* " => Steps
+
+def Term.step : Term → Option Term
+| λ→((λ !x : !T, !t₁) !t₂) =>
+    if t₂.value then [x := t₂] t₁ else t₂.step.map <| .app (.abs x T t₁)
+| λ→(!t₁ !t₂) => if t₁.value then t₂.step.map (.app t₁) else t₁.step.map (.app · t₂)
+| λ→(if true then !t else !(_)) | λ→(if false then !(_) else !t) => t
+| λ→(if !t₁ then !t₂ else !t₃) => t₁.step.map (.if · t₂ t₃)
+| _ => none
 
 theorem Value.no_step {v t : Term} : Value v → ¬(v ⟶ t) := by
   intro hv hvt
