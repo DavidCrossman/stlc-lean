@@ -103,6 +103,14 @@ infixr:10 " ⟶ " => Step
 
 infixr:10 " ⟶* " => Steps
 
+theorem Value.no_step {t t' : Term} : Value t → ¬(t ⟶ t') := by
+  rintro ⟨⟩ <;> rintro ⟨⟩
+
+theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬Value t := by
+  contrapose
+  push_neg
+  exact Value.no_step
+
 def Term.step : Term → Option Term
 | λ→((λ !x : !T, !t₁) !t₂) =>
     if t₂.value then [x := t₂] t₁ else t₂.step.map <| .app (.abs x T t₁)
