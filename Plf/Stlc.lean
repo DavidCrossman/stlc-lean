@@ -103,7 +103,7 @@ infixr:10 " ⟶ " => Step
 
 infixr:10 " ⟶* " => Steps
 
-theorem Value.no_step {t t' : Term} : Value t → ¬(t ⟶ t') := by
+theorem Value.no_step {v t : Term} : Value v → ¬(v ⟶ t) := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
 theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬Value t := by
@@ -119,9 +119,51 @@ def Term.step : Term → Option Term
 | λ→(if !t₁ then !t₂ else !t₃) => t₁.step.map (.if · t₂ t₃)
 | _ => none
 
-theorem Value.no_step {v t : Term} : Value v → ¬(v ⟶ t) := by
-  intro hv hvt
-  induction hvt <;> cases hv
+theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
+  induction t generalizing t' with
+  | var | abs | «true» | «false» =>
+    simp only [step, reduceCtorEq, false_iff]
+    rintro ⟨⟩
+  | app t1 t2 ht1 ht2 =>
+    constructor <;> intro h
+    · cases t1 with simp [step, value] at h
+      | abs => cases t2 with simp [step] at h
+        | abs | «true» | «false» => simp [←h, Step.app_cont]
+        | app | «if» =>
+          rcases h with ⟨t3, h1, h2⟩
+          simp [←h2, Step.app_cong_r _ ((ht2 t3).mp h1)]
+      | app | «if» =>
+        rcases h with ⟨t3, h1, h2⟩
+        simp only [←h2, Step.app_cong_l ((ht1 t3).mp h1)]
+      | «true» | «false» =>
+        rcases h with ⟨t3, h1, h2⟩
+        simp [←h2, Step.app_cong_r _ ((ht2 t3).mp h1)]
+    · cases h with
+      | app_cont hb => simp [step, t2.value_iff, hb]
+      | app_cong_l h => cases t1 with
+        | var | abs | «true» | «false» => cases h
+        | app | «if» => simp [step, value, ht1, h]
+      | @app_cong_r _ _ t3 v h => cases t1 with
+        | var | app | «if» => cases v
+        | abs =>
+          have h' := h.not_value
+          rw [←value_iff, «Bool».not_eq_true] at h'
+          simp [step, h', (ht2 t3).mpr h]
+        | «true» | «false» => simp [step, value, (ht2 t3).mpr h]
+  | «if» t1 _ _ ht1 =>
+    constructor <;> intro h
+    · cases t1 with simp [step] at h
+      | app | «if» =>
+        rcases h with ⟨t2, h1, h2⟩
+        rw [←h2]
+        exact Step.if_cong ((ht1 t2).mp h1)
+      | «true» => simp only [h, Step.if_cont_true]
+      | «false» => simp only [h, Step.if_cont_false]
+    · cases h with
+      | if_cont_true | if_cont_false => rw [step]
+      | @if_cong _ t2 _ _ h => cases t1 with
+        | var | abs | «true» | «false» => cases h
+        | app | «if» => simp [step, (ht1 t2).mpr h]
 
 theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t₂ := by
   intro h1 h2
