@@ -107,9 +107,7 @@ theorem Value.no_step {v t : Term} : Value v → ¬(v ⟶ t) := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
 theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬Value t := by
-  contrapose
-  push_neg
-  exact Value.no_step
+  rintro ⟨⟩ <;> rintro ⟨⟩
 
 def Term.step : Term → Option Term
 | λ→((λ !x : !T, !t₁) !t₂) =>
@@ -124,72 +122,108 @@ theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
   | var | abs | «true» | «false» =>
     simp only [step, reduceCtorEq, false_iff]
     rintro ⟨⟩
-  | app t1 t2 ht1 ht2 =>
+  | app t₁ t₂ ht₁ ht₂ =>
     constructor <;> intro h
-    · cases t1 with simp [step, value] at h
-      | abs => cases t2 with simp [step] at h
+    · cases t₁ with simp [step, value] at h
+      | abs => cases t₂ with simp [step] at h
         | abs | «true» | «false» => simp [←h, Step.app_cont]
         | app | «if» =>
-          rcases h with ⟨t3, h1, h2⟩
-          simp [←h2, Step.app_cong_r _ ((ht2 t3).mp h1)]
+          rcases h with ⟨t₃, h1, h₂⟩
+          simp [←h₂, Step.app_cong_r _ ((ht₂ t₃).mp h1)]
       | app | «if» =>
-        rcases h with ⟨t3, h1, h2⟩
-        simp only [←h2, Step.app_cong_l ((ht1 t3).mp h1)]
+        rcases h with ⟨t₃, h₁, h₂⟩
+        simp only [←h₂, Step.app_cong_l ((ht₁ t₃).mp h₁)]
       | «true» | «false» =>
-        rcases h with ⟨t3, h1, h2⟩
-        simp [←h2, Step.app_cong_r _ ((ht2 t3).mp h1)]
+        rcases h with ⟨t₃, h₁, h₂⟩
+        simp [←h₂, Step.app_cong_r _ ((ht₂ t₃).mp h₁)]
     · cases h with
-      | app_cont hb => simp [step, t2.value_iff, hb]
-      | app_cong_l h => cases t1 with
+      | app_cont hb => simp [step, t₂.value_iff, hb]
+      | app_cong_l h => cases t₁ with
         | var | abs | «true» | «false» => cases h
-        | app | «if» => simp [step, value, ht1, h]
-      | @app_cong_r _ _ t3 v h => cases t1 with
+        | app | «if» => simp [step, value, ht₁, h]
+      | @app_cong_r _ _ t₃ v h => cases t₁ with
         | var | app | «if» => cases v
         | abs =>
           have h' := h.not_value
           rw [←value_iff, «Bool».not_eq_true] at h'
-          simp [step, h', (ht2 t3).mpr h]
-        | «true» | «false» => simp [step, value, (ht2 t3).mpr h]
-  | «if» t1 _ _ ht1 =>
+          simp [step, h', (ht₂ t₃).mpr h]
+        | «true» | «false» => simp [step, value, (ht₂ t₃).mpr h]
+  | «if» t₁ _ _ ht₁ =>
     constructor <;> intro h
-    · cases t1 with simp [step] at h
+    · cases t₁ with simp [step] at h
       | app | «if» =>
-        rcases h with ⟨t2, h1, h2⟩
-        rw [←h2]
-        exact Step.if_cong ((ht1 t2).mp h1)
+        rcases h with ⟨t₂, h₁, h₂⟩
+        rw [←h₂]
+        exact Step.if_cong ((ht₁ t₂).mp h₁)
       | «true» => simp only [h, Step.if_cont_true]
       | «false» => simp only [h, Step.if_cont_false]
     · cases h with
       | if_cont_true | if_cont_false => rw [step]
-      | @if_cong _ t2 _ _ h => cases t1 with
+      | @if_cong _ t₂ _ _ h => cases t₁ with
         | var | abs | «true» | «false» => cases h
-        | app | «if» => simp [step, (ht1 t2).mpr h]
+        | app | «if» => simp [step, (ht₁ t₂).mpr h]
+
+theorem Term.not_step_iff_not_step (t : Term) : t.step = none ↔ ∀ t', ¬(t ⟶ t') := by
+  simp [←Term.step_iff_step]
+  constructor <;> intro h
+  · simp [h]
+  · ext
+    simp [h]
+
+def Term.step_n : Term → ℕ → Term
+| x, 0 => x
+| t, n + 1 =>
+  let t' := t.step_n n
+  match t'.step with
+  | some t'' => t''
+  | none => t'
+
+theorem Term.step_n_spec (t : Term) (n : ℕ) : t ⟶* t.step_n n := by
+  induction n generalizing t with
+  | zero => exact Relation.ReflTransGen.refl
+  | succ n ih =>
+    rw [step_n]
+    by_cases h : ∃ t', t.step_n n ⟶ t'
+    · rcases h with ⟨_, h'⟩
+      simp only [(Term.step_iff_step ..).mpr h']
+      rcases (ih t).cases_head with ht | _
+      · rw [ht]
+        exact Relation.ReflTransGen.single h'
+      · exact Relation.ReflTransGen.tail (ih t) h'
+    · push_neg at h
+      rw [←Term.not_step_iff_not_step] at h
+      rw [h]
+      exact ih t
+
+theorem Term.reduce_n {t t' : Term} (n : ℕ) (h : t.step_n n = t' := by rfl) : t ⟶* t' := by
+  rw [←h]
+  exact t.step_n_spec n
 
 theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t₂ := by
-  intro h1 h2
-  induction h1 generalizing t₂ with
-  | app_cont v => cases h2 with
+  intro h₁ h₂
+  induction h₁ generalizing t₂ with
+  | app_cont v => cases h₂ with
     | app_cont => rfl
-    | app_cong_l h3 => cases h3
-    | app_cong_r _ h3 => cases v.no_step h3
-  | app_cong_l h3 ih => cases h2 with
-    | app_cont => cases (Value.abs ..).no_step h3
-    | app_cong_l h4 => rw [ih h4]
-    | app_cong_r v => cases v.no_step h3
-  | app_cong_r v h3 ih => cases h2 with
-    | app_cont v2 => cases v2.no_step h3
-    | app_cong_l h4 => cases v.no_step h4
-    | app_cong_r _ h4 => rw [ih h4]
-  | if_cont_true => cases h2 with
+    | app_cong_l h₃ => cases h₃
+    | app_cong_r _ h₃ => cases v.no_step h₃
+  | app_cong_l h₃ ih => cases h₂ with
+    | app_cont => cases (Value.abs ..).no_step h₃
+    | app_cong_l h₄ => rw [ih h₄]
+    | app_cong_r v => cases v.no_step h₃
+  | app_cong_r v h₃ ih => cases h₂ with
+    | app_cont v₂ => cases v₂.no_step h₃
+    | app_cong_l h₄ => cases v.no_step h₄
+    | app_cong_r _ h₄ => rw [ih h₄]
+  | if_cont_true => cases h₂ with
     | if_cont_true => rfl
-    | if_cong h3 => cases Value.true.no_step h3
-  | if_cont_false => cases h2 with
+    | if_cong h₃ => cases Value.true.no_step h₃
+  | if_cont_false => cases h₂ with
     | if_cont_false => rfl
-    | if_cong h3 => cases Value.false.no_step h3
-  | if_cong h3 ih => cases h2 with
-    | if_cont_true => cases Value.true.no_step h3
-    | if_cont_false => cases Value.false.no_step h3
-    | if_cong h4 => rw [ih h4]
+    | if_cong h₃ => cases Value.false.no_step h₃
+  | if_cong h₃ ih => cases h₂ with
+    | if_cont_true => cases Value.true.no_step h₃
+    | if_cont_false => cases Value.false.no_step h₃
+    | if_cong h₄ => rw [ih h₄]
 
 @[refl, simp]
 theorem Steps.refl {t : Term} : t ⟶* t := Relation.ReflTransGen.refl
@@ -200,13 +234,11 @@ theorem Steps.head {t₁ t₂ t₃ : Term} : (t₁ ⟶ t₂) → (t₂ ⟶* t₃
 theorem Steps.cont_iff {t₁ t₂ v : Term} (hv : Value v) (h : t₁ ⟶ t₂) :
     (t₁ ⟶* v) ↔ (t₂ ⟶* v) := by
   constructor
-  · intro h2
-    obtain (rfl | ⟨t₃, h3, h4⟩) := h2.cases_head
+  · intro h₂
+    obtain (rfl | ⟨t₃, h₃, h₄⟩) := h₂.cases_head
     · cases hv.no_step h
-    · rw [h.unique h3]
-      exact h4
-  · intro h2
-    apply Steps.head h
-    exact h2
+    · rw [h.unique h₃]
+      exact h₄
+  · exact Steps.head h
 
 end Stlc
