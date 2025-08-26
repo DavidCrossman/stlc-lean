@@ -40,8 +40,8 @@ macro_rules
 | `(λ→[Bool]) => `(Ty.bool)
 | `(λ→[$l:stlc_ty → $r:stlc_ty]) => `(Ty.arrow λ→[$l] λ→[$r])
 | `(λ→[($ty:stlc_ty)]) => `(λ→[$ty])
-| `(λ→[!$x:ident]) => pure x
-| `(λ→[!($t:term)]) => pure t
+| `(λ→[!$x:ident]) => return x
+| `(λ→[!($t:term)]) => return t
 
 macro_rules
 | `(λ→($x:ident)) => `(Term.var $(Lean.quote (toString x.getId)))
@@ -57,8 +57,8 @@ macro_rules
 | `(λ→(if $t₁:stlc_term then $t₂:stlc_term else $t₃:stlc_term)) =>
     `(Term.if λ→($t₁) λ→($t₂) λ→($t₃))
 | `(λ→(($term:stlc_term))) => `(λ→($term))
-| `(λ→(!$x:ident)) => pure x
-| `(λ→(!($t:term))) => pure t
+| `(λ→(!$x:ident)) => return x
+| `(λ→(!($t:term))) => return t
 
 @[mk_iff]
 inductive Value : Term → Prop
@@ -240,5 +240,12 @@ theorem Steps.cont_iff {t₁ t₂ v : Term} (hv : Value v) (h : t₁ ⟶ t₂) :
     · rw [h.unique h₃]
       exact h₄
   · exact Steps.head h
+
+def Context : Type := String → Option Ty
+
+def Context.empty : Context := fun _ => none
+
+def Context.update (Γ : Context) (x : String) (T : Ty) : Context :=
+  Function.update Γ x (some T)
 
 end Stlc
