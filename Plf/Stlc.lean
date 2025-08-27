@@ -103,6 +103,18 @@ infixr:10 " ⟶ " => Step
 
 infixr:10 " ⟶* " => Steps
 
+@[refl, simp]
+theorem Steps.refl {t : Term} : t ⟶* t := Relation.ReflTransGen.refl
+
+theorem Steps.head {t₁ t₂ t₃ : Term} : (t₁ ⟶ t₂) → (t₂ ⟶* t₃) → (t₁ ⟶* t₃) :=
+  Relation.ReflTransGen.head
+
+theorem Steps.tail {t₁ t₂ t₃ : Term} : (t₁ ⟶* t₂) → (t₂ ⟶ t₃) → (t₁ ⟶* t₃) :=
+  Relation.ReflTransGen.tail
+
+theorem Steps.single {t t' : Term} : (t ⟶ t') → (t ⟶* t') :=
+  Relation.ReflTransGen.single
+
 theorem Value.no_step {v t : Term} : Value v → ¬(v ⟶ t) := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
@@ -180,7 +192,7 @@ def Term.step_n : Term → ℕ → Term
 
 theorem Term.step_n_spec (t : Term) (n : ℕ) : t ⟶* t.step_n n := by
   induction n generalizing t with
-  | zero => exact Relation.ReflTransGen.refl
+  | zero => rfl
   | succ n ih =>
     rw [step_n]
     by_cases h : ∃ t', t.step_n n ⟶ t'
@@ -188,8 +200,8 @@ theorem Term.step_n_spec (t : Term) (n : ℕ) : t ⟶* t.step_n n := by
       simp only [(Term.step_iff_step ..).mpr h']
       rcases (ih t).cases_head with ht | _
       · rw [ht]
-        exact Relation.ReflTransGen.single h'
-      · exact Relation.ReflTransGen.tail (ih t) h'
+        exact Steps.single h'
+      · exact Steps.tail (ih t) h'
     · push_neg at h
       rw [←Term.not_step_iff_not_step] at h
       rw [h]
@@ -224,12 +236,6 @@ theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t�
     | if_cont_true => cases Value.true.no_step h₃
     | if_cont_false => cases Value.false.no_step h₃
     | if_cong h₄ => rw [ih h₄]
-
-@[refl, simp]
-theorem Steps.refl {t : Term} : t ⟶* t := Relation.ReflTransGen.refl
-
-theorem Steps.head {t₁ t₂ t₃ : Term} : (t₁ ⟶ t₂) → (t₂ ⟶* t₃) → (t₁ ⟶* t₃) :=
-  Relation.ReflTransGen.head
 
 theorem Steps.cont_iff {t₁ t₂ v : Term} (hv : Value v) (h : t₁ ⟶ t₂) :
     (t₁ ⟶* v) ↔ (t₂ ⟶* v) := by
