@@ -16,53 +16,51 @@ inductive Term : Type
 | if : Term → Term → Term → Term
 
 declare_syntax_cat stlc_ty
+syntax ident : stlc_ty
 syntax "Bool" : stlc_ty
 syntax:10 stlc_ty:11 " → " stlc_ty:10 : stlc_ty
 syntax "(" stlc_ty ")" : stlc_ty
-syntax "!" ident : stlc_ty
-syntax "!(" term ")" : stlc_ty
+syntax "$(" term ")" : stlc_ty
 syntax "λ→[" stlc_ty "]" : term
 
 declare_syntax_cat stlc_term
 syntax ident : stlc_term
-syntax "λ" "!"? ident " : " stlc_ty " , " stlc_term : stlc_term
-syntax "λ" "!(" term ")" " : " stlc_ty " , " stlc_term : stlc_term
+syntax str : stlc_term
+syntax "λ" str " : " stlc_ty ", " stlc_term : stlc_term
+syntax "λ" ident " : " stlc_ty ", " stlc_term : stlc_term
+syntax "λ" "$(" term ")" " : " stlc_ty ", " stlc_term : stlc_term
 syntax:80 stlc_term:80 stlc_term:81 : stlc_term
 syntax "true" : stlc_term
 syntax "false" : stlc_term
 syntax "if " stlc_term " then " stlc_term " else " stlc_term : stlc_term
 syntax "(" stlc_term ")" : stlc_term
-syntax "!" ident : stlc_term
-syntax "!(" term ")" : stlc_term
+syntax "$(" term ")" : stlc_term
 syntax "λ→(" stlc_term ")" : term
 
 macro_rules
+| `(λ→[$a:ident]) => return a
 | `(λ→[Bool]) => `(Ty.bool)
 | `(λ→[$l:stlc_ty → $r:stlc_ty]) => `(Ty.arrow λ→[$l] λ→[$r])
 | `(λ→[($ty:stlc_ty)]) => `(λ→[$ty])
-| `(λ→[!$x:ident]) => return x
-| `(λ→[!($t:term)]) => return t
+| `(λ→[$($t:term)]) => return t
 
 macro_rules
-| `(λ→($x:ident)) => `(Term.var $(Lean.quote (toString x.getId)))
-| `(λ→(λ $x:ident : $ty:stlc_ty, $term:stlc_term)) =>
-    `(Term.abs $(Lean.quote (toString x.getId)) λ→[$ty] λ→($term))
-| `(λ→(λ !$x:ident : $ty:stlc_ty, $term:stlc_term)) =>
-    `(Term.abs $x λ→[$ty] λ→($term))
-| `(λ→(λ !($x:term) : $ty:stlc_ty, $term:stlc_term)) =>
-    `(Term.abs $x λ→[$ty] λ→($term))
+| `(λ→($a:ident)) => return a
+| `(λ→($x:str)) => `(Term.var $x)
+| `(λ→(λ $x:ident : $ty:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$ty] λ→($term))
+| `(λ→(λ $x:str : $ty:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$ty] λ→($term))
+| `(λ→(λ $($x:term) : $ty:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$ty] λ→($term))
 | `(λ→($l:stlc_term $r:stlc_term)) => `(Term.app λ→($l) λ→($r))
 | `(λ→(true)) => `(Term.true)
 | `(λ→(false)) => `(Term.false)
 | `(λ→(if $t₁:stlc_term then $t₂:stlc_term else $t₃:stlc_term)) =>
     `(Term.if λ→($t₁) λ→($t₂) λ→($t₃))
 | `(λ→(($term:stlc_term))) => `(λ→($term))
-| `(λ→(!$x:ident)) => return x
-| `(λ→(!($t:term))) => return t
+| `(λ→($($t:term))) => return t
 
 @[mk_iff]
 inductive Value : Term → Prop
-| abs x T t : Value λ→(λ !x : !T, !t)
+| abs x τ t : Value λ→(λ x : τ, t)
 | true : Value λ→(true)
 | false : Value λ→(false)
 
@@ -79,27 +77,31 @@ theorem Term.value_iff (t : Term) : t.value ↔ Value t := by
 @[simp]
 def subst (x : String) (s t : Term) : Term := match t with
 | .var y => if x == y then s else t
-| λ→(λ !y : !T, !t₁) => if x == y then t else λ→(λ !y : !T, !(subst x s t₁))
-| λ→(!t₁ !t₂) => λ→(!(subst x s t₁) !(subst x s t₂))
+| λ→(λ y : τ, t) => if x == y then t else λ→(λ y : τ, $(subst x s t))
+| λ→(t₁ t₂) => λ→($(subst x s t₁) $(subst x s t₂))
 | λ→(true) | λ→(false) => t
-| λ→(if !t₁ then !t₂ else !t₃) =>
-    λ→(if !(subst x s t₁) then !(subst x s t₂) else !(subst x s t₃))
+| λ→(if t₁ then t₂ else t₃) =>
+    λ→(if $(subst x s t₁) then $(subst x s t₂) else $(subst x s t₃))
 
 notation "[" x " := " s "] " t:max => subst x s t
 
-inductive Step : Term → Term → Prop
-| app_cont {x T t v} :
-    Value v → Step λ→((λ !x: !T, !t) !v) λ→(!([x := v] t))
-| app_cong_l {t₁ t₁' t₂} : Step t₁ t₁' → Step λ→(!t₁ !t₂) λ→(!t₁' !t₂)
-| app_cong_r {v t t'} : Value v → Step t t' → Step λ→(!v !t) λ→(!v !t')
-| if_cont_true {t₁ t₂} : Step λ→(if true then !t₁ else !t₂) t₁
-| if_cont_false {t₁ t₂} : Step λ→(if false then !t₁ else !t₂) t₂
-| if_cong {t₁ t₁' t₂ t₃} :
-    Step t₁ t₁' → Step λ→(if !t₁ then !t₂ else !t₃) λ→(if !t₁' then !t₂ else !t₃)
+section
+set_option hygiene false
+local infixr:10 " ⟶ " => Step
 
-def Steps := Relation.ReflTransGen Step
+inductive Step : Term → Term → Prop
+| app_cont {x τ t v} : Value v → (λ→((λ x : τ, t) v) ⟶ λ→($([x := v] t)))
+| app_cong_l {t₁ t₁' t₂} : (t₁ ⟶ t₁') → (λ→(t₁ t₂) ⟶ λ→(t₁' t₂))
+| app_cong_r {v t t'} : Value v → (t ⟶ t') → (λ→(v t) ⟶ λ→(v t'))
+| if_cont_true {t₁ t₂} : λ→(if true then t₁ else t₂) ⟶ t₁
+| if_cont_false {t₁ t₂} : λ→(if false then t₁ else t₂) ⟶ t₂
+| if_cong {t₁ t₁' t₂ t₃} :
+    (t₁ ⟶ t₁') → (λ→(if t₁ then t₂ else t₃) ⟶ λ→(if t₁' then t₂ else t₃))
+end
 
 infixr:10 " ⟶ " => Step
+
+def Steps := Relation.ReflTransGen Step
 
 infixr:10 " ⟶* " => Steps
 
@@ -122,11 +124,11 @@ theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬Value t := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
 def Term.step : Term → Option Term
-| λ→((λ !x : !T, !t₁) !t₂) =>
-    if t₂.value then [x := t₂] t₁ else t₂.step.map <| .app (.abs x T t₁)
-| λ→(!t₁ !t₂) => if t₁.value then t₂.step.map (.app t₁) else t₁.step.map (.app · t₂)
-| λ→(if true then !t else !(_)) | λ→(if false then !(_) else !t) => t
-| λ→(if !t₁ then !t₂ else !t₃) => t₁.step.map (.if · t₂ t₃)
+| λ→((λ x : τ, t₁) t₂) =>
+    if t₂.value then [x := t₂] t₁ else t₂.step.map <| .app (.abs x τ t₁)
+| λ→(t₁ t₂) => if t₁.value then t₂.step.map (.app t₁) else t₁.step.map (.app · t₂)
+| λ→(if true then t else $(_)) | λ→(if false then $(_) else t) => t
+| λ→(if t₁ then t₂ else t₃) => t₁.step.map (.if · t₂ t₃)
 | _ => none
 
 theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
@@ -251,7 +253,7 @@ def Context : Type := String → Option Ty
 
 def Context.empty : Context := fun _ => none
 
-def Context.update (Γ : Context) (x : String) (T : Ty) : Context :=
-  Function.update Γ x (some T)
+def Context.update (Γ : Context) (x : String) (τ : Ty) : Context :=
+  Function.update Γ x (some τ)
 
 end Stlc
