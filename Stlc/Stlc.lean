@@ -276,8 +276,10 @@ inductive Judgement : Context → Term → Ty → Type
 end
 
 syntax term " ⊢ " stlc_term " : " stlc_ty : term
+syntax "⊢ " stlc_term " : " stlc_ty : term
 
 macro_rules
 | `($Γ:term ⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement $Γ λ→($term) λ→[$ty])
+| `(⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement Context.empty λ→($term) λ→[$ty])
 
 end Stlc
