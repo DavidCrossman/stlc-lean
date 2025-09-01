@@ -265,7 +265,7 @@ local syntax term " ⊢ " stlc_term " : " stlc_ty : term
 local macro_rules
 | `($Γ:term ⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement $Γ λ→($term) λ→[$ty])
 
-inductive Judgement : Context → Term → Ty → Type
+inductive Judgement : Context → Term → Ty → Prop
 | var {Γ x τ} : Γ x = some τ → Γ ⊢ $(Term.var x) : τ
 | abs {Γ x τ₁ τ₂ t} : (x ↦ τ₂; Γ ⊢ t : τ₁) → Γ ⊢ λ x : τ₂, t : τ₂ → τ₁
 | app {Γ τ τ' t₁ t₂} : (Γ ⊢ t₁ : τ → τ') → (Γ ⊢ t₂ : τ) → Γ ⊢ t₁ t₂ : τ'
