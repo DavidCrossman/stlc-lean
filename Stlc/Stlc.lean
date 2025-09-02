@@ -175,14 +175,14 @@ theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
       | if_cont_true | if_cont_false => rw [step]
       | @if_cong _ t₂ _ _ h => cases t₁ with
         | var | abs | «true» | «false» => cases h
-        | app | «if» => simp [step, (ht₁ t₂).mpr h]
+        | app | «if» => simp only [step, (ht₁ t₂).mpr h, Option.map_some]
 
 theorem Term.not_step_iff_not_step (t : Term) : t.step = none ↔ ∀ t', ¬(t ⟶ t') := by
   simp [←Term.step_iff_step]
   constructor <;> intro h
-  · simp [h]
+  · simp only [h, reduceCtorEq, not_false_eq_true, implies_true]
   · ext
-    simp [h]
+    simp only [h, reduceCtorEq]
 
 def Term.step_n : Term → ℕ → Term
 | x, 0 => x
@@ -243,7 +243,7 @@ theorem Steps.cont_iff {t₁ t₂ v : Term} (hv : Value v) (h : t₁ ⟶ t₂) :
     (t₁ ⟶* v) ↔ (t₂ ⟶* v) := by
   constructor
   · intro h₂
-    obtain (rfl | ⟨t₃, h₃, h₄⟩) := h₂.cases_head
+    obtain rfl | ⟨t₃, h₃, h₄⟩ := h₂.cases_head
     · cases hv.no_step h
     · rw [h.unique h₃]
       exact h₄
@@ -257,6 +257,22 @@ def Context.update (Γ : Context) (x : String) (τ : Ty) : Context :=
   Function.update Γ x (some τ)
 
 notation:max x " ↦ " τ "; " Γ:max => Context.update Γ x τ
+
+def Context.IncludedIn (Γ Γ' : Context) : Prop :=
+  ∀ {x τ}, Γ x = some τ → Γ' x = some τ
+
+instance : HasSubset Context where
+  Subset := Context.IncludedIn
+
+theorem Context.includedIn_update (Γ Γ' : Context) (x : String) (τ : Ty) :
+    Γ ⊆ Γ' → x ↦ τ; Γ ⊆ x ↦ τ; Γ' := by
+  simp only [Subset, IncludedIn, update, Function.update_apply]
+  intro h₁ y τ' h₂
+  rw [←h₂]
+  split_ifs with hyx
+  · rfl
+  · simp only [hyx, ↓reduceIte] at h₂
+    rw [h₁ h₂, h₂]
 
 section
 set_option hygiene false
