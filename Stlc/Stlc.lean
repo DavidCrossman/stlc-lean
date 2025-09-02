@@ -77,20 +77,23 @@ theorem Term.value_iff (t : Term) : t.value ↔ Value t := by
 @[simp]
 def subst (x : String) (s t : Term) : Term := match t with
 | .var y => if x == y then s else t
-| λ→(λ y : τ, t) => if x == y then t else λ→(λ y : τ, $(subst x s t))
+| λ→(λ y : τ, t') => if x == y then t else λ→(λ y : τ, $(subst x s t'))
 | λ→(t₁ t₂) => λ→($(subst x s t₁) $(subst x s t₂))
 | λ→(true) | λ→(false) => t
-| λ→(if t₁ then t₂ else t₃) =>
-    λ→(if $(subst x s t₁) then $(subst x s t₂) else $(subst x s t₃))
+| λ→(if t₁ then t₂ else t₃) => λ→(if $(subst x s t₁) then $(subst x s t₂) else $(subst x s t₃))
 
-notation "[" x " := " s "] " t:max => subst x s t
+syntax "[" ident " := " stlc_term "]" stlc_term:100 : stlc_term
+syntax "[" str " := " stlc_term "]" stlc_term:100 : stlc_term
+macro_rules
+| `(λ→([$x:ident := $s:stlc_term] $t:stlc_term)) => `(subst $x λ→($s) λ→($t))
+| `(λ→([$x:str := $s:stlc_term] $t:stlc_term)) => `(subst $x λ→($s) λ→($t))
 
 section
 set_option hygiene false
 local infixr:10 " ⟶ " => Step
 
 inductive Step : Term → Term → Prop
-| app_cont {x τ t v} : Value v → (λ→((λ x : τ, t) v) ⟶ λ→($([x := v] t)))
+| app_cont {x τ t v} : Value v → (λ→((λ x : τ, t) v) ⟶ λ→([x := v] t))
 | app_cong_l {t₁ t₁' t₂} : (t₁ ⟶ t₁') → (λ→(t₁ t₂) ⟶ λ→(t₁' t₂))
 | app_cong_r {v t t'} : Value v → (t ⟶ t') → (λ→(v t) ⟶ λ→(v t'))
 | if_cont_true {t₁ t₂} : λ→(if true then t₁ else t₂) ⟶ t₁
@@ -125,7 +128,7 @@ theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬Value t := by
 
 def Term.step : Term → Option Term
 | λ→((λ x : τ, t₁) t₂) =>
-    if t₂.value then [x := t₂] t₁ else t₂.step.map <| .app (.abs x τ t₁)
+    if t₂.value then subst x t₂ t₁ else t₂.step.map <| .app (.abs x τ t₁)
 | λ→(t₁ t₂) => if t₁.value then t₂.step.map (.app t₁) else t₁.step.map (.app · t₂)
 | λ→(if true then t else $(_)) | λ→(if false then $(_) else t) => t
 | λ→(if t₁ then t₂ else t₃) => t₁.step.map (.if · t₂ t₃)
