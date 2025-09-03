@@ -256,6 +256,9 @@ def Context : Type := String → Option Ty
 
 def Context.empty : Context := fun _ => none
 
+instance : EmptyCollection Context where
+  emptyCollection := Context.empty
+
 def Context.update (Γ : Context) (x : String) (τ : Ty) : Context :=
   Function.update Γ x (some τ)
 
@@ -267,7 +270,10 @@ def Context.IncludedIn (Γ Γ' : Context) : Prop :=
 instance : HasSubset Context where
   Subset := Context.IncludedIn
 
-theorem Context.includedIn_update (Γ Γ' : Context) (x : String) (τ : Ty) :
+theorem Context.includedIn_empty (Γ : Context) : ∅ ⊆ Γ := by
+  rintro _ _ ⟨⟩
+
+theorem Context.includedIn_update {Γ Γ' : Context} {x : String} {τ : Ty} :
     Γ ⊆ Γ' → x ↦ τ; Γ ⊆ x ↦ τ; Γ' := by
   simp only [Subset, IncludedIn, update, Function.update_apply]
   intro h₁ y τ' h₂
@@ -299,6 +305,6 @@ syntax "⊢ " stlc_term " : " stlc_ty : term
 
 macro_rules
 | `($Γ:term ⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement $Γ λ→($term) λ→[$ty])
-| `(⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement Context.empty λ→($term) λ→[$ty])
+| `(⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement ∅ λ→($term) λ→[$ty])
 
 end Stlc
