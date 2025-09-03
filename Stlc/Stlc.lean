@@ -90,6 +90,7 @@ macro_rules
 
 section
 set_option hygiene false
+
 local infixr:10 " ⟶ " => Step
 
 inductive Step : Term → Term → Prop
@@ -100,6 +101,7 @@ inductive Step : Term → Term → Prop
 | if_cont_false {t₁ t₂} : λ→(if false then t₁ else t₂) ⟶ t₂
 | if_cong {t₁ t₁' t₂ t₃} :
     (t₁ ⟶ t₁') → (λ→(if t₁ then t₂ else t₃) ⟶ λ→(if t₁' then t₂ else t₃))
+
 end
 
 infixr:10 " ⟶ " => Step
@@ -285,6 +287,7 @@ theorem Context.includedIn_update {Γ Γ' : Context} {x : String} {τ : Ty} :
 
 section
 set_option hygiene false
+
 local syntax term " ⊢ " stlc_term " : " stlc_ty : term
 
 local macro_rules
@@ -342,5 +345,15 @@ theorem progress {t : Term} {τ : Ty} : (⊢ t : τ) → Value t ∨ ∃ t', t �
         exact Step.if_cont_false
     · use t₁'.if t₂ t₃
       exact Step.if_cong iht₁
+
+theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ ⊢ t : τ) → Γ' ⊢ t : τ := by
+  intro hΓ h
+  induction h generalizing Γ' with
+  | var h => exact Judgement.var (hΓ h)
+  | abs _ ih => exact Judgement.abs (ih (Context.includedIn_update hΓ))
+  | app _ _ ih₁ ih₂ => exact Judgement.app (ih₁ hΓ) (ih₂ hΓ)
+  | «true» => exact Judgement.true
+  | «false» => exact Judgement.false
+  | «if» _ _ _ ih₁ ih₂ ih₃ => exact Judgement.if (ih₁ hΓ) (ih₂ hΓ) (ih₃ hΓ)
 
 end Stlc
