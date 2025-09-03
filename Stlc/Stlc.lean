@@ -307,4 +307,40 @@ macro_rules
 | `($Γ:term ⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement $Γ λ→($term) λ→[$ty])
 | `(⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement ∅ λ→($term) λ→[$ty])
 
+theorem progress {t : Term} {τ : Ty} : (⊢ t : τ) → Value t ∨ ∃ t', t ⟶ t' := by
+  set Γ : Context := ∅ with hΓ
+  clear_value Γ
+  intro h
+  induction h with subst hΓ
+  | var h => cases h
+  | abs | «true» | «false» => simp
+  | @app _ _ _ t₁ t₂ ht₁ _ iht₁ iht₂ =>
+    simp_rw [forall_const] at iht₁ iht₂
+    right
+    rcases iht₁ with iht₁ | ⟨t₁', iht₁⟩
+    · rcases iht₂ with iht₂ | ⟨t₂', iht₂⟩
+      · cases ht₁ with
+        | var | app | «if» => cases iht₁
+        | @abs _ x _ _ t₁ =>
+          use subst x t₂ t₁
+          exact Step.app_cont iht₂
+      · use t₁.app t₂'
+        exact Step.app_cong_r iht₁ iht₂
+    · use t₁'.app t₂
+      exact Step.app_cong_l iht₁
+  | @«if» _ _ t₁ t₂ t₃ ht₁ _ _ iht₁ =>
+    simp_rw [forall_const] at iht₁
+    right
+    rcases iht₁ with iht₁ | ⟨t₁', iht₁⟩
+    · cases ht₁ with
+      | var | app | «if» => cases iht₁
+      | «true» =>
+        use t₂
+        exact Step.if_cont_true
+      | «false» =>
+        use t₃
+        exact Step.if_cont_false
+    · use t₁'.if t₂ t₃
+      exact Step.if_cong iht₁
+
 end Stlc
