@@ -26,9 +26,9 @@ syntax "λ→[" stlc_ty "]" : term
 declare_syntax_cat stlc_term
 syntax ident : stlc_term
 syntax str : stlc_term
-syntax "λ" str " : " stlc_ty ", " stlc_term : stlc_term
-syntax "λ" ident " : " stlc_ty ", " stlc_term : stlc_term
-syntax "λ" "$(" term ")" " : " stlc_ty ", " stlc_term : stlc_term
+syntax "λ " str " : " stlc_ty ", " stlc_term : stlc_term
+syntax "λ " ident " : " stlc_ty ", " stlc_term : stlc_term
+syntax "λ " "$(" term ")" " : " stlc_ty ", " stlc_term : stlc_term
 syntax:80 stlc_term:80 stlc_term:81 : stlc_term
 syntax "true" : stlc_term
 syntax "false" : stlc_term
@@ -40,17 +40,17 @@ syntax "λ→(" stlc_term ")" : term
 macro_rules
 | `(λ→[$a:ident]) => return a
 | `(λ→[Bool]) => `(Ty.bool)
-| `(λ→[$l:stlc_ty → $r:stlc_ty]) => `(Ty.arrow λ→[$l] λ→[$r])
-| `(λ→[($ty:stlc_ty)]) => `(λ→[$ty])
+| `(λ→[$τ₁:stlc_ty → $τ₂:stlc_ty]) => `(Ty.arrow λ→[$τ₁] λ→[$τ₂])
+| `(λ→[($τ:stlc_ty)]) => `(λ→[$τ])
 | `(λ→[$($t:term)]) => return t
 
 macro_rules
 | `(λ→($a:ident)) => return a
 | `(λ→($x:str)) => `(Term.var $x)
-| `(λ→(λ $x:ident : $ty:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$ty] λ→($term))
-| `(λ→(λ $x:str : $ty:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$ty] λ→($term))
-| `(λ→(λ $($x:term) : $ty:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$ty] λ→($term))
-| `(λ→($l:stlc_term $r:stlc_term)) => `(Term.app λ→($l) λ→($r))
+| `(λ→(λ $x:ident : $τ:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$τ] λ→($term))
+| `(λ→(λ $x:str : $τ:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$τ] λ→($term))
+| `(λ→(λ $($x:term) : $τ:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$τ] λ→($term))
+| `(λ→($t₁:stlc_term $t₂:stlc_term)) => `(Term.app λ→($t₁) λ→($t₂))
 | `(λ→(true)) => `(Term.true)
 | `(λ→(false)) => `(Term.false)
 | `(λ→(if $t₁:stlc_term then $t₂:stlc_term else $t₃:stlc_term)) =>
@@ -248,10 +248,9 @@ theorem Steps.cont_iff {t₁ t₂ v : Term} (hv : Value v) (h : t₁ ⟶ t₂) :
     (t₁ ⟶* v) ↔ (t₂ ⟶* v) := by
   constructor
   · intro h₂
-    obtain rfl | ⟨t₃, h₃, h₄⟩ := h₂.cases_head
+    obtain rfl | ⟨_, h₃, _⟩ := h₂.cases_head
     · cases hv.no_step h
-    · rw [h.unique h₃]
-      exact h₄
+    · rwa [h.unique h₃]
   · exact Steps.head h
 
 def Context : Type := String → Option Ty
@@ -264,7 +263,7 @@ instance : EmptyCollection Context where
 def Context.update (Γ : Context) (x : String) (τ : Ty) : Context :=
   Function.update Γ x (some τ)
 
-notation:max x " ↦ " τ "; " Γ:max => Context.update Γ x τ
+notation:arg x " ↦ " τ "; " Γ:arg => Context.update Γ x τ
 
 def Context.IncludedIn (Γ Γ' : Context) : Prop :=
   ∀ {x τ}, Γ x = some τ → Γ' x = some τ
@@ -316,7 +315,9 @@ theorem progress {t : Term} {τ : Ty} : (⊢ t : τ) → Value t ∨ ∃ t', t �
   intro h
   induction h with subst hΓ
   | var h => cases h
-  | abs | «true» | «false» => simp
+  | abs | «true» | «false» =>
+    left
+    constructor
   | @app _ _ _ t₁ t₂ ht₁ _ iht₁ iht₂ =>
     simp_rw [forall_const] at iht₁ iht₂
     right
@@ -352,8 +353,40 @@ theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ �
   | var h => exact Judgement.var (hΓ h)
   | abs _ ih => exact Judgement.abs (ih (Context.includedIn_update hΓ))
   | app _ _ ih₁ ih₂ => exact Judgement.app (ih₁ hΓ) (ih₂ hΓ)
-  | «true» => exact Judgement.true
-  | «false» => exact Judgement.false
+  | «true» | «false» => constructor
   | «if» _ _ _ ih₁ ih₂ ih₃ => exact Judgement.if (ih₁ hΓ) (ih₂ hΓ) (ih₃ hΓ)
+
+theorem subst_preserves_typing {Γ x τ₁ t₁ t₂ τ₂} :
+    (x ↦ τ₂; Γ ⊢ t₁ : τ₁) → (⊢ t₂ : τ₂) → Γ ⊢ [x := t₂] t₁ : τ₁ := by
+  simp_rw [Context.update]
+  intro h₁ h₂
+  induction t₁ generalizing Γ τ₁ τ₂ with
+  | var y => cases h₁ with | var h₁ =>
+    by_cases hxy : x = y
+    · subst hxy
+      rw [Function.update_self, Option.some.injEq] at h₁
+      rw [←h₁, subst, BEq.rfl]
+      exact weakening Γ.includedIn_empty h₂
+    · rw [Function.update_of_ne (Ne.symm hxy)] at h₁
+      simp only [subst, beq_iff_eq, hxy]
+      exact Judgement.var h₁
+  | abs y _ _ ih => cases h₁ with | abs h₁ =>
+    by_cases hxy : x = y
+    · subst hxy
+      rw [Context.update, Function.update_idem] at h₁
+      rw [subst, BEq.rfl]
+      exact Judgement.abs h₁
+    · simp only [subst, beq_iff_eq, hxy]
+      apply Judgement.abs
+      rw [Context.update]
+      apply ih _ h₂
+      rwa [Function.update_comm (Ne.symm hxy)]
+  | app _ _ ih₁ ih₂ => cases h₁ with | app h₃ h₄ =>
+    exact Judgement.app (ih₁ h₃ h₂) (ih₂ h₄ h₂)
+  | «true» | «false» =>
+    cases h₁
+    constructor
+  | «if» _ _ _ ih₁ ih₂ ih₃ => cases h₁ with | «if» h₃ h₄ h₅ =>
+    exact Judgement.if (ih₁ h₃ h₂) (ih₂ h₄ h₂) (ih₃ h₅ h₂)
 
 end Stlc
