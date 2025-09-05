@@ -21,7 +21,6 @@ syntax "Bool" : stlc_ty
 syntax:10 stlc_ty:11 " → " stlc_ty:10 : stlc_ty
 syntax "(" stlc_ty ")" : stlc_ty
 syntax "$(" term ")" : stlc_ty
-syntax "λ→[" stlc_ty "]" : term
 
 declare_syntax_cat stlc_term
 syntax ident : stlc_term
@@ -35,34 +34,36 @@ syntax "false" : stlc_term
 syntax "if " stlc_term " then " stlc_term " else " stlc_term : stlc_term
 syntax "(" stlc_term ")" : stlc_term
 syntax "$(" term ")" : stlc_term
-syntax "λ→(" stlc_term ")" : term
+
+syntax "τ[ " stlc_ty " ]" : term
+syntax "t[ " stlc_term " ]" : term
 
 macro_rules
-| `(λ→[$a:ident]) => return a
-| `(λ→[Bool]) => `(Ty.bool)
-| `(λ→[$τ₁:stlc_ty → $τ₂:stlc_ty]) => `(Ty.arrow λ→[$τ₁] λ→[$τ₂])
-| `(λ→[($τ:stlc_ty)]) => `(λ→[$τ])
-| `(λ→[$($t:term)]) => return t
+| `(τ[ $a:ident ]) => return a
+| `(τ[ Bool ]) => `(Ty.bool)
+| `(τ[ $τ₁:stlc_ty → $τ₂:stlc_ty ]) => `(Ty.arrow τ[$τ₁] τ[$τ₂])
+| `(τ[ ($τ:stlc_ty) ]) => `(τ[$τ])
+| `(τ[ $($t:term) ]) => return t
 
 macro_rules
-| `(λ→($a:ident)) => return a
-| `(λ→($x:str)) => `(Term.var $x)
-| `(λ→(λ $x:ident : $τ:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$τ] λ→($term))
-| `(λ→(λ $x:str : $τ:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$τ] λ→($term))
-| `(λ→(λ $($x:term) : $τ:stlc_ty, $term:stlc_term)) => `(Term.abs $x λ→[$τ] λ→($term))
-| `(λ→($t₁:stlc_term $t₂:stlc_term)) => `(Term.app λ→($t₁) λ→($t₂))
-| `(λ→(true)) => `(Term.true)
-| `(λ→(false)) => `(Term.false)
-| `(λ→(if $t₁:stlc_term then $t₂:stlc_term else $t₃:stlc_term)) =>
-    `(Term.if λ→($t₁) λ→($t₂) λ→($t₃))
-| `(λ→(($term:stlc_term))) => `(λ→($term))
-| `(λ→($($t:term))) => return t
+| `(t[ $a:ident ]) => return a
+| `(t[ $x:str ]) => `(Term.var $x)
+| `(t[ λ $x:ident : $τ:stlc_ty, $t:stlc_term ]) => `(Term.abs $x τ[$τ] t[$t])
+| `(t[ λ $x:str : $τ:stlc_ty, $t:stlc_term ]) => `(Term.abs $x τ[$τ] t[$t])
+| `(t[ λ $($x:term) : $τ:stlc_ty, $t:stlc_term ]) => `(Term.abs $x τ[$τ] t[$t])
+| `(t[ $t₁:stlc_term $t₂:stlc_term ]) => `(Term.app t[$t₁] t[$t₂])
+| `(t[ true ]) => `(Term.true)
+| `(t[ false ]) => `(Term.false)
+| `(t[ if $t₁:stlc_term then $t₂:stlc_term else $t₃:stlc_term ]) =>
+    `(Term.if t[$t₁] t[$t₂] t[$t₃])
+| `(t[ ($t:stlc_term) ]) => `(t[$t])
+| `(t[ $($t:term) ]) => return t
 
 @[mk_iff]
 inductive Value : Term → Prop
-| abs x τ t : Value λ→(λ x : τ, t)
-| true : Value λ→(true)
-| false : Value λ→(false)
+| abs {x τ t} : Value t[λ x : τ, t]
+| true : Value t[true]
+| false : Value t[false]
 
 attribute [simp] Value.abs Value.true Value.false
 
@@ -77,16 +78,16 @@ theorem Term.value_iff (t : Term) : t.value ↔ Value t := by
 @[simp]
 def subst (x : String) (s t : Term) : Term := match t with
 | .var y => if x == y then s else t
-| λ→(λ y : τ, t') => if x == y then t else λ→(λ y : τ, $(subst x s t'))
-| λ→(t₁ t₂) => λ→($(subst x s t₁) $(subst x s t₂))
-| λ→(true) | λ→(false) => t
-| λ→(if t₁ then t₂ else t₃) => λ→(if $(subst x s t₁) then $(subst x s t₂) else $(subst x s t₃))
+| t[λ y : τ, t'] => if x == y then t else t[λ y : τ, $(subst x s t')]
+| t[t₁ t₂] => t[$(subst x s t₁) $(subst x s t₂)]
+| t[true] | t[false] => t
+| t[if t₁ then t₂ else t₃] => t[if $(subst x s t₁) then $(subst x s t₂) else $(subst x s t₃)]
 
 syntax "[" ident " := " stlc_term "]" stlc_term:100 : stlc_term
 syntax "[" str " := " stlc_term "]" stlc_term:100 : stlc_term
 macro_rules
-| `(λ→([$x:ident := $s:stlc_term] $t:stlc_term)) => `(subst $x λ→($s) λ→($t))
-| `(λ→([$x:str := $s:stlc_term] $t:stlc_term)) => `(subst $x λ→($s) λ→($t))
+| `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(subst $x t[$s] t[$t])
+| `(t[ [$x:str := $s:stlc_term] $t:stlc_term ]) => `(subst $x t[$s] t[$t])
 
 section
 set_option hygiene false
@@ -94,13 +95,13 @@ set_option hygiene false
 local infixr:10 " ⟶ " => Step
 
 inductive Step : Term → Term → Prop
-| app_cont {x τ t v} : Value v → (λ→((λ x : τ, t) v) ⟶ λ→([x := v] t))
-| app_cong_l {t₁ t₁' t₂} : (t₁ ⟶ t₁') → (λ→(t₁ t₂) ⟶ λ→(t₁' t₂))
-| app_cong_r {v t t'} : Value v → (t ⟶ t') → (λ→(v t) ⟶ λ→(v t'))
-| if_cont_true {t₁ t₂} : λ→(if true then t₁ else t₂) ⟶ t₁
-| if_cont_false {t₁ t₂} : λ→(if false then t₁ else t₂) ⟶ t₂
+| app_cont {x τ t v} : Value v → (t[(λ x : τ, t) v] ⟶ t[[x := v] t])
+| app_cong_l {t₁ t₁' t₂} : (t₁ ⟶ t₁') → (t[t₁ t₂] ⟶ t[t₁' t₂])
+| app_cong_r {v t t'} : Value v → (t ⟶ t') → (t[v t] ⟶ t[v t'])
+| if_cont_true {t₁ t₂} : t[if true then t₁ else t₂] ⟶ t₁
+| if_cont_false {t₁ t₂} : t[if false then t₁ else t₂] ⟶ t₂
 | if_cong {t₁ t₁' t₂ t₃} :
-    (t₁ ⟶ t₁') → (λ→(if t₁ then t₂ else t₃) ⟶ λ→(if t₁' then t₂ else t₃))
+    (t₁ ⟶ t₁') → (t[if t₁ then t₂ else t₃] ⟶ t[if t₁' then t₂ else t₃])
 
 end
 
@@ -129,11 +130,11 @@ theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬Value t := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
 def Term.step : Term → Option Term
-| λ→((λ x : τ, t₁) t₂) =>
+| t[(λ x : τ, t₁) t₂] =>
     if t₂.value then subst x t₂ t₁ else t₂.step.map <| .app (.abs x τ t₁)
-| λ→(t₁ t₂) => if t₁.value then t₂.step.map (.app t₁) else t₁.step.map (.app · t₂)
-| λ→(if true then t else $(_)) | λ→(if false then $(_) else t) => t
-| λ→(if t₁ then t₂ else t₃) => t₁.step.map (.if · t₂ t₃)
+| t[t₁ t₂] => if t₁.value then t₂.step.map (.app t₁) else t₁.step.map (.app · t₂)
+| t[if true then t else $(_)] | t[if false then $(_) else t] => t
+| t[if t₁ then t₂ else t₃] => t₁.step.map (.if · t₂ t₃)
 | _ => none
 
 theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
@@ -290,7 +291,7 @@ set_option hygiene false
 local syntax term " ⊢ " stlc_term " : " stlc_ty : term
 
 local macro_rules
-| `($Γ:term ⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement $Γ λ→($term) λ→[$ty])
+| `($Γ:term ⊢ $t:stlc_term : $τ:stlc_ty) => `(Judgement $Γ t[$t] τ[$τ])
 
 inductive Judgement : Context → Term → Ty → Prop
 | var {Γ x τ} : Γ x = some τ → Γ ⊢ $(Term.var x) : τ
@@ -306,8 +307,8 @@ syntax term " ⊢ " stlc_term " : " stlc_ty : term
 syntax "⊢ " stlc_term " : " stlc_ty : term
 
 macro_rules
-| `($Γ:term ⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement $Γ λ→($term) λ→[$ty])
-| `(⊢ $term:stlc_term : $ty:stlc_ty) => `(Judgement ∅ λ→($term) λ→[$ty])
+| `($Γ:term ⊢ $t:stlc_term : $τ:stlc_ty) => `(Judgement $Γ t[$t] τ[$τ])
+| `(⊢ $t:stlc_term : $τ:stlc_ty) => `(Judgement ∅ t[$t] τ[$τ])
 
 theorem progress {t : Term} {τ : Ty} : (⊢ t : τ) → Value t ∨ ∃ t', t ⟶ t' := by
   set Γ : Context := ∅ with hΓ
