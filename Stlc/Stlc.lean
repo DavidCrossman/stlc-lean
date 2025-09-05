@@ -17,12 +17,14 @@ inductive Term : Type
 
 declare_syntax_cat stlc_ty
 syntax ident : stlc_ty
+syntax hole : stlc_ty
 syntax "Bool" : stlc_ty
 syntax:10 stlc_ty:11 " → " stlc_ty:10 : stlc_ty
 syntax "(" stlc_ty ")" : stlc_ty
 syntax "$(" term ")" : stlc_ty
 
 declare_syntax_cat stlc_term
+syntax hole : stlc_term
 syntax ident : stlc_term
 syntax str : stlc_term
 syntax "λ " str " : " stlc_ty ", " stlc_term : stlc_term
@@ -40,6 +42,7 @@ syntax "t[ " stlc_term " ]" : term
 
 macro_rules
 | `(τ[ $a:ident ]) => return a
+| `(τ[ $a:hole ]) => return a
 | `(τ[ Bool ]) => `(Ty.bool)
 | `(τ[ $τ₁:stlc_ty → $τ₂:stlc_ty ]) => `(Ty.arrow τ[$τ₁] τ[$τ₂])
 | `(τ[ ($τ:stlc_ty) ]) => `(τ[$τ])
@@ -47,6 +50,7 @@ macro_rules
 
 macro_rules
 | `(t[ $a:ident ]) => return a
+| `(t[ $a:hole ]) => return a
 | `(t[ $x:str ]) => `(Term.var $x)
 | `(t[ λ $x:ident : $τ:stlc_ty, $t:stlc_term ]) => `(Term.abs $x τ[$τ] t[$t])
 | `(t[ λ $x:str : $τ:stlc_ty, $t:stlc_term ]) => `(Term.abs $x τ[$τ] t[$t])
@@ -133,7 +137,7 @@ def Term.step : Term → Option Term
 | t[(λ x : τ, t₁) t₂] =>
     if t₂.value then subst x t₂ t₁ else t₂.step.map <| .app (.abs x τ t₁)
 | t[t₁ t₂] => if t₁.value then t₂.step.map (.app t₁) else t₁.step.map (.app · t₂)
-| t[if true then t else $(_)] | t[if false then $(_) else t] => t
+| t[if true then t else _] | t[if false then _ else t] => t
 | t[if t₁ then t₂ else t₃] => t₁.step.map (.if · t₂ t₃)
 | _ => none
 
@@ -190,7 +194,7 @@ theorem Term.not_step_iff_not_step (t : Term) : t.step = none ↔ ∀ t', ¬(t �
   · ext
     simp only [h, reduceCtorEq]
 
-def Term.step_n : Term → ℕ → Term
+def Term.step_n : Term → Nat → Term
 | x, 0 => x
 | t, n + 1 =>
   let t' := t.step_n n
@@ -198,7 +202,7 @@ def Term.step_n : Term → ℕ → Term
   | some t'' => t''
   | none => t'
 
-theorem Term.step_n_spec (t : Term) (n : ℕ) : t ⟶* t.step_n n := by
+theorem Term.step_n_spec (t : Term) (n : Nat) : t ⟶* t.step_n n := by
   induction n generalizing t with
   | zero => rfl
   | succ n ih =>
@@ -215,7 +219,7 @@ theorem Term.step_n_spec (t : Term) (n : ℕ) : t ⟶* t.step_n n := by
       rw [h]
       exact ih t
 
-theorem Term.reduce_n {t t' : Term} (n : ℕ) (h : t.step_n n = t' := by rfl) : t ⟶* t' := by
+theorem Term.reduce_n {t t' : Term} (n : Nat) (h : t.step_n n = t' := by rfl) : t ⟶* t' := by
   rw [←h]
   exact t.step_n_spec n
 
