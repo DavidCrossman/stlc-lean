@@ -390,4 +390,24 @@ theorem subst_preserves_typing {Γ x τ₁ t₁ t₂ τ₂} :
   | «if» _ _ _ ih₁ ih₂ ih₃ => cases h₁ with | «if» h₃ h₄ h₅ =>
     exact Judgement.if (ih₁ h₃ h₂) (ih₂ h₄ h₂) (ih₃ h₅ h₂)
 
+theorem preservation {t t' : Term} {τ : Ty} : (⊢ t : τ) → (t ⟶ t') → ⊢ t' : τ := by
+  set Γ : Context := ∅ with hΓ
+  clear_value Γ
+  intro h₁ h₂
+  induction h₁ generalizing t' with subst hΓ
+  | var | abs | «true» | «false» => cases h₂
+  | app h₃ h₄ ih₁ ih₂ =>
+    simp_rw [forall_const] at ih₁ ih₂
+    cases h₂ with
+    | app_cont => cases h₃ with | abs h₃ =>
+      exact subst_preserves_typing h₃ h₄
+    | app_cong_l h₅ => exact Judgement.app (ih₁ h₅) h₄
+    | app_cong_r _ h₅ => exact Judgement.app h₃ (ih₂ h₅)
+  | «if» _ h₃ h₄ ih₁ =>
+    simp_rw [forall_const] at ih₁
+    cases h₂ with
+    | if_cont_true => exact h₃
+    | if_cont_false => exact h₄
+    | if_cong h₂ => exact Judgement.if (ih₁ h₂) h₃ h₄
+
 end Stlc
