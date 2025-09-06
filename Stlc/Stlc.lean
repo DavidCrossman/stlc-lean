@@ -81,8 +81,8 @@ theorem Term.value_iff (t : Term) : t.value ↔ Value t := by
 
 @[simp]
 def subst (x : String) (s t : Term) : Term := match t with
-| .var y => if x == y then s else t
-| t[λ y : τ, t'] => if x == y then t else t[λ y : τ, $(subst x s t')]
+| .var y => if x = y then s else t
+| t[λ y : τ, t'] => if x = y then t else t[λ y : τ, $(subst x s t')]
 | t[t₁ t₂] => t[$(subst x s t₁) $(subst x s t₂)]
 | t[true] | t[false] => t
 | t[if t₁ then t₂ else t₃] => t[if $(subst x s t₁) then $(subst x s t₂) else $(subst x s t₃)]
@@ -115,8 +115,12 @@ def Steps := Relation.ReflTransGen Step
 
 infixr:10 " ⟶* " => Steps
 
-@[refl, simp]
+@[refl]
 theorem Steps.refl {t : Term} : t ⟶* t := Relation.ReflTransGen.refl
+
+@[trans]
+theorem Steps.trans {t₁ t₂ t₃ : Term} : (t₁ ⟶* t₂) → (t₂ ⟶* t₃) → (t₁ ⟶* t₃) :=
+  Relation.ReflTransGen.trans
 
 theorem Steps.head {t₁ t₂ t₃ : Term} : (t₁ ⟶ t₂) → (t₂ ⟶* t₃) → (t₁ ⟶* t₃) :=
   Relation.ReflTransGen.head
@@ -124,8 +128,7 @@ theorem Steps.head {t₁ t₂ t₃ : Term} : (t₁ ⟶ t₂) → (t₂ ⟶* t₃
 theorem Steps.tail {t₁ t₂ t₃ : Term} : (t₁ ⟶* t₂) → (t₂ ⟶ t₃) → (t₁ ⟶* t₃) :=
   Relation.ReflTransGen.tail
 
-theorem Steps.single {t t' : Term} : (t ⟶ t') → (t ⟶* t') :=
-  Relation.ReflTransGen.single
+theorem Steps.single {t₁ t₂ : Term} : (t₁ ⟶ t₂) → (t₁ ⟶* t₂) := Relation.ReflTransGen.single
 
 theorem Value.no_step {v t : Term} : Value v → ¬(v ⟶ t) := by
   rintro ⟨⟩ <;> rintro ⟨⟩
@@ -260,10 +263,8 @@ theorem Steps.cont_iff {t₁ t₂ v : Term} (hv : Value v) (h : t₁ ⟶ t₂) :
 
 def Context : Type := String → Option Ty
 
-def Context.empty : Context := fun _ => none
-
-instance : EmptyCollection Context where
-  emptyCollection := Context.empty
+instance : EmptyCollection Context :=
+  ⟨fun _ => none⟩
 
 def Context.update (Γ : Context) (x : String) (τ : Ty) : Context :=
   Function.update Γ x (some τ)
@@ -273,8 +274,8 @@ notation:arg x " ↦ " τ "; " Γ:arg => Context.update Γ x τ
 def Context.IncludedIn (Γ Γ' : Context) : Prop :=
   ∀ {x τ}, Γ x = some τ → Γ' x = some τ
 
-instance : HasSubset Context where
-  Subset := Context.IncludedIn
+instance : HasSubset Context :=
+  ⟨Context.IncludedIn⟩
 
 theorem Context.includedIn_empty (Γ : Context) : ∅ ⊆ Γ := by
   rintro _ _ ⟨⟩
@@ -370,18 +371,18 @@ theorem subst_preserves_typing {Γ x τ₁ t₁ t₂ τ₂} :
     by_cases hxy : x = y
     · subst hxy
       rw [Function.update_self, Option.some.injEq] at h₁
-      rw [←h₁, subst, BEq.rfl]
+      rw [←h₁, subst, if_pos rfl]
       exact weakening Γ.includedIn_empty h₂
     · rw [Function.update_of_ne (Ne.symm hxy)] at h₁
-      simp only [subst, beq_iff_eq, hxy]
+      simp only [subst, hxy]
       exact Judgement.var h₁
   | abs y _ _ ih => cases h₁ with | abs h₁ =>
     by_cases hxy : x = y
     · subst hxy
       rw [Context.update, Function.update_idem] at h₁
-      rw [subst, BEq.rfl]
+      rw [subst, if_pos rfl]
       exact Judgement.abs h₁
-    · simp only [subst, beq_iff_eq, hxy]
+    · simp only [subst, hxy]
       apply Judgement.abs
       rw [Context.update]
       apply ih _ h₂
