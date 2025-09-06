@@ -414,4 +414,12 @@ theorem preservation {t t' : Term} {τ : Ty} : (⊢ t : τ) → (t ⟶ t') → �
     | if_cont_false => exact h₄
     | if_cong h₂ => exact Judgement.if (ih₁ h₂) h₃ h₄
 
+def Term.Stuck (t : Term) : Prop := ¬Value t ∧ ¬∃ t', t ⟶ t'
+
+theorem soundness {t t' : Term} {τ : Ty} : (⊢ t : τ) → (t ⟶* t') → ¬t'.Stuck := by
+  intro h₁ h₂ ⟨_, _⟩
+  induction h₂ using Relation.ReflTransGen.head_induction_on with
+  | refl => cases progress h₁ <;> contradiction
+  | head h₃ _ ih => exact ih (preservation h₁ h₃)
+
 end Stlc
