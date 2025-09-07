@@ -6,6 +6,7 @@ namespace Stlc
 inductive Ty : Type
 | bool
 | arrow : Ty → Ty → Ty
+deriving DecidableEq
 
 inductive Term : Type
 | var : String → Term
@@ -14,6 +15,7 @@ inductive Term : Type
 | true
 | false
 | if : Term → Term → Term → Term
+deriving DecidableEq
 
 declare_syntax_cat stlc_ty
 syntax ident : stlc_ty
@@ -71,13 +73,8 @@ inductive Value : Term → Prop
 
 attribute [simp] Value.abs Value.true Value.false
 
-def Term.value : Term → «Bool»
-| .true | .false | .abs .. => Bool.true
-| _ => Bool.false
-
-theorem Term.value_iff (t : Term) : t.value ↔ Value t := by
-  rw [Stlc.value_iff]
-  cases t <;> simp [value]
+instance : DecidablePred Value := fun t =>
+  decidable_of_bool (t matches .true | .false | .abs ..) (by cases t <;> simp [value_iff])
 
 @[simp]
 def subst (x : String) (s t : Term) : Term := match t with
@@ -138,8 +135,8 @@ theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬Value t := by
 
 def Term.step : Term → Option Term
 | t[(λ x : τ, t₁) t₂] =>
-    if t₂.value then subst x t₂ t₁ else t₂.step.map <| .app (.abs x τ t₁)
-| t[t₁ t₂] => if t₁.value then t₂.step.map (.app t₁) else t₁.step.map (.app · t₂)
+    if Value t₂ then subst x t₂ t₁ else t₂.step.map <| .app (.abs x τ t₁)
+| t[t₁ t₂] => if Value t₁ then t₂.step.map (.app t₁) else t₁.step.map (.app · t₂)
 | t[if true then t else _] | t[if false then _ else t] => t
 | t[if t₁ then t₂ else t₃] => t₁.step.map (.if · t₂ t₃)
 | _ => none
@@ -151,8 +148,8 @@ theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
     rintro ⟨⟩
   | app t₁ t₂ ht₁ ht₂ =>
     constructor <;> intro h
-    · cases t₁ with simp [step, value] at h
-      | abs => cases t₂ with simp [step] at h
+    · cases t₁ with simp [step, value_iff] at h
+      | abs => cases t₂ with simp [step, value_iff] at h
         | abs | «true» | «false» => simp [←h, Step.app_cont]
         | app | «if» =>
           rcases h with ⟨t₃, h1, h₂⟩
@@ -164,17 +161,16 @@ theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
         rcases h with ⟨t₃, h₁, h₂⟩
         simp [←h₂, Step.app_cong_r _ ((ht₂ t₃).mp h₁)]
     · cases h with
-      | app_cont hb => simp [step, t₂.value_iff, hb]
+      | app_cont hb => simp [step, hb]
       | app_cong_l h => cases t₁ with
         | var | abs | «true» | «false» => cases h
-        | app | «if» => simp [step, value, ht₁, h]
+        | app | «if» => simp [step, value_iff, ht₁, h]
       | @app_cong_r _ _ t₃ v h => cases t₁ with
         | var | app | «if» => cases v
         | abs =>
           have h' := h.not_value
-          rw [←value_iff, «Bool».not_eq_true] at h'
           simp [step, h', (ht₂ t₃).mpr h]
-        | «true» | «false» => simp [step, value, (ht₂ t₃).mpr h]
+        | «true» | «false» => simp [step, (ht₂ t₃).mpr h]
   | «if» t₁ _ _ ht₁ =>
     constructor <;> intro h
     · cases t₁ with simp [step] at h
@@ -189,6 +185,9 @@ theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
       | @if_cong _ t₂ _ _ h => cases t₁ with
         | var | abs | «true» | «false» => cases h
         | app | «if» => simp only [step, (ht₁ t₂).mpr h, Option.map_some]
+
+instance : DecidableRel Step := fun t₁ t₂ =>
+  decidable_of_decidable_of_iff <| Term.step_iff_step t₁ t₂
 
 theorem Term.not_step_iff_not_step (t : Term) : t.step = none ↔ ∀ t', ¬(t ⟶ t') := by
   simp [←Term.step_iff_step]
