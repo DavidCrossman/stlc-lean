@@ -76,13 +76,22 @@ attribute [simp] Value.abs Value.true Value.false
 instance : DecidablePred Value := fun t =>
   decidable_of_bool (t matches .true | .false | .abs ..) (by cases t <;> simp [value_iff])
 
+section
+set_option hygiene false
+
+local syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
+local macro_rules
+| `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(subst $x t[$s] t[$t])
+
 @[simp]
 def subst (x : String) (s t : Term) : Term := match t with
 | .var y => if x = y then s else t
-| t[λ y : τ, t'] => if x = y then t else t[λ y : τ, $(subst x s t')]
-| t[t₁ t₂] => t[$(subst x s t₁) $(subst x s t₂)]
+| t[λ y : τ, t'] => if x = y then t else t[λ y : τ, [x := s] t']
+| t[t₁ t₂] => t[([x := s] t₁) ([x := s] t₂)]
 | t[true] | t[false] => t
-| t[if t₁ then t₂ else t₃] => t[if $(subst x s t₁) then $(subst x s t₂) else $(subst x s t₃)]
+| t[if t₁ then t₂ else t₃] => t[if [x := s] t₁ then [x := s] t₂ else [x := s] t₃]
+
+end
 
 syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
 syntax:lead "[" str " := " stlc_term "]" stlc_term:max : stlc_term
