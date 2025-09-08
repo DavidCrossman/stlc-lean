@@ -26,16 +26,16 @@ syntax "(" stlc_ty ")" : stlc_ty
 syntax "$(" term ")" : stlc_ty
 
 declare_syntax_cat stlc_term
-syntax hole : stlc_term
-syntax ident : stlc_term
-syntax str : stlc_term
-syntax "λ " str " : " stlc_ty ", " stlc_term : stlc_term
-syntax "λ " ident " : " stlc_ty ", " stlc_term : stlc_term
-syntax "λ " "$(" term ")" " : " stlc_ty ", " stlc_term : stlc_term
-syntax:80 stlc_term:80 stlc_term:81 : stlc_term
-syntax "true" : stlc_term
-syntax "false" : stlc_term
-syntax "if " stlc_term " then " stlc_term " else " stlc_term : stlc_term
+syntax:max ident : stlc_term
+syntax:max hole : stlc_term
+syntax:max str : stlc_term
+syntax:lead "λ " str " : " stlc_ty ", " stlc_term : stlc_term
+syntax:lead "λ " ident " : " stlc_ty ", " stlc_term : stlc_term
+syntax:lead "λ " "$(" term ")" " : " stlc_ty ", " stlc_term : stlc_term
+syntax:arg stlc_term:arg stlc_term:max : stlc_term
+syntax:max "true" : stlc_term
+syntax:max "false" : stlc_term
+syntax:lead "if " stlc_term " then " stlc_term " else " stlc_term : stlc_term
 syntax "(" stlc_term ")" : stlc_term
 syntax "$(" term ")" : stlc_term
 
@@ -84,8 +84,8 @@ def subst (x : String) (s t : Term) : Term := match t with
 | t[true] | t[false] => t
 | t[if t₁ then t₂ else t₃] => t[if $(subst x s t₁) then $(subst x s t₂) else $(subst x s t₃)]
 
-syntax "[" ident " := " stlc_term "]" stlc_term:100 : stlc_term
-syntax "[" str " := " stlc_term "]" stlc_term:100 : stlc_term
+syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
+syntax:lead "[" str " := " stlc_term "]" stlc_term:max : stlc_term
 macro_rules
 | `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(subst $x t[$s] t[$t])
 | `(t[ [$x:str := $s:stlc_term] $t:stlc_term ]) => `(subst $x t[$s] t[$t])
