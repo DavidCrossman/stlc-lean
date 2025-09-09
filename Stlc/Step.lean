@@ -1,3 +1,5 @@
+import Mathlib.Logic.Relation
+import Mathlib.Tactic
 import Stlc.Basic
 import Stlc.Syntax
 import Stlc.Subst

@@ -1,3 +1,4 @@
+import Mathlib.Tactic
 import Stlc.Basic
 import Stlc.Syntax
 

@@ -1,6 +1,3 @@
-import Mathlib.Logic.Relation
-import Mathlib.Tactic
-
 namespace Stlc
 
 inductive Ty : Type
