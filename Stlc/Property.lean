@@ -113,4 +113,17 @@ theorem soundness {t t' : Term} {τ : Ty} : (⊢ t : τ) → (t ⟶* t') → ¬t
   | refl => cases progress h₁ <;> contradiction
   | head h₃ _ ih => exact ih (preservation h₁ h₃)
 
+theorem type_uniqueness {Γ : Context} {t : Term} {τ τ' : Ty} :
+    (Γ ⊢ t : τ) → (Γ ⊢ t : τ') → τ = τ' := by
+  intro h₁ h₂
+  induction h₁ generalizing τ' with
+  | var h₃ => cases h₂ with | var h₄ => rwa [h₃, Option.some_inj] at h₄
+  | abs _ ih => cases h₂ with | abs h₃ =>
+    rw [Ty.arrow.injEq, propext (and_iff_left (ih h₃))]
+  | app _ _ ih => cases h₂ with | app h₃ _ => injection ih h₃
+  | «true» | «false» =>
+    cases h₂
+    rfl
+  | ite _ _ _ _ _ ih => cases h₂ with | ite _ _ h₃ => exact ih h₃
+
 end Stlc
