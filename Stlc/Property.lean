@@ -3,9 +3,7 @@ import Stlc.Typing
 
 namespace Stlc
 
-open Syntax
-
-theorem progress {t : Term} {τ : Ty} : (⊢ t : τ) → Value t ∨ ∃ t', t ⟶ t' := by
+theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → Value t ∨ ∃ t', t ⟶ t' := by
   set Γ : Context := ∅ with hΓ
   clear_value Γ
   intro h
@@ -52,8 +50,9 @@ theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ �
   | «true» | «false» => constructor
   | ite _ _ _ ih₁ ih₂ ih₃ => exact Judgement.ite (ih₁ hΓ) (ih₂ hΓ) (ih₃ hΓ)
 
+open Syntax in
 theorem subst_preserves_typing {Γ x τ₁ t₁ t₂ τ₂} :
-    (x ↦ τ₂; Γ ⊢ t₁ : τ₁) → (⊢ t₂ : τ₂) → Γ ⊢ [x := t₂] t₁ : τ₁ := by
+    (x ↦ τ₂; Γ ⊢ t₁ : τ₁) → (∅ ⊢ t₂ : τ₂) → Γ ⊢' [x := t₂] t₁ : τ₁ := by
   simp_rw [Context.update]
   intro h₁ h₂
   induction t₁ generalizing Γ τ₁ τ₂ with
@@ -85,7 +84,7 @@ theorem subst_preserves_typing {Γ x τ₁ t₁ t₂ τ₂} :
   | ite _ _ _ ih₁ ih₂ ih₃ => cases h₁ with | ite h₃ h₄ h₅ =>
     exact Judgement.ite (ih₁ h₃ h₂) (ih₂ h₄ h₂) (ih₃ h₅ h₂)
 
-theorem preservation {t t' : Term} {τ : Ty} : (⊢ t : τ) → (t ⟶ t') → ⊢ t' : τ := by
+theorem preservation {t t' : Term} {τ : Ty} : (∅ ⊢ t : τ) → (t ⟶ t') → ∅ ⊢ t' : τ := by
   set Γ : Context := ∅ with hΓ
   clear_value Γ
   intro h₁ h₂
@@ -107,7 +106,7 @@ theorem preservation {t t' : Term} {τ : Ty} : (⊢ t : τ) → (t ⟶ t') → �
 
 def Term.Stuck (t : Term) : Prop := ¬Value t ∧ ¬∃ t', t ⟶ t'
 
-theorem soundness {t t' : Term} {τ : Ty} : (⊢ t : τ) → (t ⟶* t') → ¬t'.Stuck := by
+theorem soundness {t t' : Term} {τ : Ty} : (∅ ⊢ t : τ) → (t ⟶* t') → ¬t'.Stuck := by
   intro h₁ h₂ ⟨_, _⟩
   induction h₂ using Relation.ReflTransGen.head_induction_on with
   | refl => cases progress h₁ <;> contradiction

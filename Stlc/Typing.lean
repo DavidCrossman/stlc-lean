@@ -53,14 +53,17 @@ inductive Judgement : Context → Term → Ty → Prop
 
 end
 
+@[match_pattern]
+notation Γ " ⊢ " t " : " τ => Judgement Γ t τ
+
 namespace Syntax
 
-scoped syntax term " ⊢ " stlc_term " : " stlc_ty : term
-scoped syntax "⊢ " stlc_term " : " stlc_ty : term
+scoped syntax term " ⊢' " stlc_term " : " stlc_ty : term
+scoped syntax "⊢' " stlc_term " : " stlc_ty : term
 
 scoped macro_rules
-| `($Γ:term ⊢ $t:stlc_term : $τ:stlc_ty) => `(Judgement $Γ t[$t] τ[$τ])
-| `(⊢ $t:stlc_term : $τ:stlc_ty) => `(Judgement ∅ t[$t] τ[$τ])
+| `($Γ:term ⊢' $t:stlc_term : $τ:stlc_ty) => `(Judgement $Γ t[$t] τ[$τ])
+| `(⊢' $t:stlc_term : $τ:stlc_ty) => `(Judgement ∅ t[$t] τ[$τ])
 
 end Syntax
 
