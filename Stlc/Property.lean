@@ -3,7 +3,7 @@ import Stlc.Typing
 
 namespace Stlc
 
-theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → Value t ∨ ∃ t', t ⟶ t' := by
+theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t', t ⟶ t' := by
   set Γ : Context := ∅ with hΓ
   clear_value Γ
   intro h

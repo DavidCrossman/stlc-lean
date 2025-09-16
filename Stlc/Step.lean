@@ -1,29 +1,15 @@
 import Mathlib.Logic.Relation
-import Mathlib.Tactic
-import Stlc.Basic
-import Stlc.Syntax
 import Stlc.Subst
+import Stlc.Value
 
 namespace Stlc
-
-open Syntax in
-@[mk_iff]
-inductive Value : Term → Prop
-| abs {x τ t} : Value t[λ x : τ, t]
-| true : Value t[true]
-| false : Value t[false]
-
-attribute [simp] Value.abs Value.true Value.false
-
-instance : DecidablePred Value := fun t =>
-  decidable_of_bool (t matches .true | .false | .abs ..) (by cases t <;> simp [value_iff])
 
 section
 set_option hygiene false
 
 local infixr:10 " ⟶ " => Step
 
-open Syntax in
+open Term Syntax in
 inductive Step : Term → Term → Prop
 | app_cont {x τ t v} : Value v → (t[(λ x : τ, t) v] ⟶ t[[x := v] t])
 | app_cong_l {t₁ t₁' t₂} : (t₁ ⟶ t₁') → (t[t₁ t₂] ⟶ t[t₁' t₂])
@@ -56,10 +42,10 @@ theorem Steps.tail {t₁ t₂ t₃ : Term} : (t₁ ⟶* t₂) → (t₂ ⟶ t₃
 
 theorem Steps.single {t₁ t₂ : Term} : (t₁ ⟶ t₂) → (t₁ ⟶* t₂) := Relation.ReflTransGen.single
 
-theorem Value.no_step {v t : Term} : Value v → ¬(v ⟶ t) := by
+theorem Term.Value.no_step {v t : Term} : Value v → ¬(v ⟶ t) := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
-theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬Value t := by
+theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬t.Value := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
 open Syntax in
@@ -163,7 +149,7 @@ theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t�
     | app_cong_l h₃ => cases h₃
     | app_cong_r _ h₃ => cases v.no_step h₃
   | app_cong_l h₃ ih => cases h₂ with
-    | app_cont => cases (Value.abs ..).no_step h₃
+    | app_cont => cases (Term.Value.abs ..).no_step h₃
     | app_cong_l h₄ => rw [ih h₄]
     | app_cong_r v => cases v.no_step h₃
   | app_cong_r v h₃ ih => cases h₂ with
@@ -172,16 +158,16 @@ theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t�
     | app_cong_r _ h₄ => rw [ih h₄]
   | ite_cont_true => cases h₂ with
     | ite_cont_true => rfl
-    | ite_cong h₃ => cases Value.true.no_step h₃
+    | ite_cong h₃ => cases Term.Value.true.no_step h₃
   | ite_cont_false => cases h₂ with
     | ite_cont_false => rfl
-    | ite_cong h₃ => cases Value.false.no_step h₃
+    | ite_cong h₃ => cases Term.Value.false.no_step h₃
   | ite_cong h₃ ih => cases h₂ with
-    | ite_cont_true => cases Value.true.no_step h₃
-    | ite_cont_false => cases Value.false.no_step h₃
+    | ite_cont_true => cases Term.Value.true.no_step h₃
+    | ite_cont_false => cases Term.Value.false.no_step h₃
     | ite_cong h₄ => rw [ih h₄]
 
-theorem Steps.cont_iff {t₁ t₂ v : Term} (hv : Value v) (h : t₁ ⟶ t₂) :
+theorem Steps.cont_iff {t₁ t₂ v : Term} (hv : v.Value) (h : t₁ ⟶ t₂) :
     (t₁ ⟶* v) ↔ (t₂ ⟶* v) := by
   constructor
   · intro h₂

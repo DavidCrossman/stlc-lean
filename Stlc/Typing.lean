@@ -1,4 +1,4 @@
-import Mathlib.Tactic
+import Mathlib.Logic.Function.Basic
 import Stlc.Basic
 import Stlc.Syntax
 
@@ -7,7 +7,7 @@ namespace Stlc
 def Context : Type := String → Option Ty
 
 instance : EmptyCollection Context :=
-  ⟨fun _ => none⟩
+  ⟨fun _ ↦ none⟩
 
 def Context.update (Γ : Context) (x : String) (τ : Ty) : Context :=
   Function.update Γ x (some τ)
