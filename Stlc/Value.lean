@@ -14,7 +14,7 @@ inductive Value : Term → Prop
 attribute [simp] Value.abs Value.true Value.false
 
 @[simp]
-lemma Value.var_not {x : String} : ¬Value (var x) := by
+lemma Value.var_not {x : String} : ¬Value t[xⱽ] := by
   rintro ⟨⟩
 
 @[simp]
