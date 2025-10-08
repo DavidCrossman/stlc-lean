@@ -4,34 +4,31 @@ import Stlc.Typing
 namespace Stlc
 
 theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t', t ⟶ t' := by
-  set Γ : Context := ∅ with hΓ
-  clear_value Γ
-  intro h
-  induction h with subst hΓ
+  generalize hΓ : (∅ : Context) = Γ
+  intro J
+  induction J with subst hΓ
   | var h => cases h
   | abs | «true» | «false» =>
     left
     constructor
-  | @app _ _ _ t₁ t₂ ht₁ _ iht₁ iht₂ =>
-    simp_rw [forall_const] at iht₁ iht₂
+  | @app _ _ _ t₁ t₂ J' _ iht₁ iht₂ =>
     right
-    rcases iht₁ with iht₁ | ⟨t₁', iht₁⟩
-    · rcases iht₂ with iht₂ | ⟨t₂', iht₂⟩
-      · cases ht₁ with
-        | var | app | ite => cases iht₁
+    obtain ht₁ | ⟨t₁', ht₁⟩ := iht₁ rfl
+    · obtain ht₂ | ⟨t₂', ht₂⟩ := iht₂ rfl
+      · cases J' with
+        | var | app | ite => cases ht₁
         | @abs _ x _ _ t₁ =>
           use subst x t₂ t₁
-          exact Step.app_cont iht₂
+          exact Step.app_cont ht₂
       · use t₁.app t₂'
-        exact Step.app_cong_r iht₁ iht₂
+        exact Step.app_cong_r ht₁ ht₂
     · use t₁'.app t₂
-      exact Step.app_cong_l iht₁
-  | @ite _ _ t₁ t₂ t₃ ht₁ _ _ iht₁ =>
-    simp_rw [forall_const] at iht₁
+      exact Step.app_cong_l ht₁
+  | @ite _ _ t₁ t₂ t₃ J' _ _ iht₁ =>
     right
-    rcases iht₁ with iht₁ | ⟨t₁', iht₁⟩
-    · cases ht₁ with
-      | var | app | ite => cases iht₁
+    obtain ht₁ | ⟨t₁', ht₁⟩ := iht₁ rfl
+    · cases J' with
+      | var | app | ite => cases ht₁
       | «true» =>
         use t₂
         exact Step.ite_cont_true
@@ -39,7 +36,7 @@ theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t',
         use t₃
         exact Step.ite_cont_false
     · use t₁'.ite t₂ t₃
-      exact Step.ite_cong iht₁
+      exact Step.ite_cong ht₁
 
 theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ ⊢ t : τ) → Γ' ⊢ t : τ := by
   intro hΓ h
@@ -51,78 +48,65 @@ theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ �
   | ite _ _ _ ih₁ ih₂ ih₃ => exact Judgement.ite (ih₁ hΓ) (ih₂ hΓ) (ih₃ hΓ)
 
 open Syntax in
-theorem subst_preserves_typing {Γ x τ₁ t₁ t₂ τ₂} :
+theorem subst_preserves_typing {Γ : Context} {τ₁ τ₂ : Ty} {t₁ t₂ : Term} {x : String} :
     (x ↦ τ₂; Γ ⊢ t₁ : τ₁) → (∅ ⊢ t₂ : τ₂) → Γ ⊢' [x := t₂] t₁ : τ₁ := by
-  simp_rw [Context.update]
-  intro h₁ h₂
-  induction t₁ generalizing Γ τ₁ τ₂ with
-  | var y => cases h₁ with | var h₁ =>
-    by_cases hxy : x = y
+  intro J₁ J₂
+  induction t₁ generalizing Γ τ₁ τ₂ with rw [subst]
+  | var y => cases J₁ with | var h =>
+    split_ifs with hxy
+    · rw [hxy, Context.update_self, Option.some.injEq] at h
+      subst h
+      exact weakening Γ.includedIn_empty J₂
+    · rw [Context.update_of_ne (Ne.symm hxy)] at h
+      exact Judgement.var h
+  | abs _ _ _ ih => cases J₁ with | abs J₁ =>
+    split_ifs with hxy
     · subst hxy
-      rw [Function.update_self, Option.some.injEq] at h₁
-      rw [←h₁, subst, if_pos rfl]
-      exact weakening Γ.includedIn_empty h₂
-    · rw [Function.update_of_ne (Ne.symm hxy)] at h₁
-      simp only [subst, hxy]
-      exact Judgement.var h₁
-  | abs y _ _ ih => cases h₁ with | abs h₁ =>
-    by_cases hxy : x = y
-    · subst hxy
-      rw [Context.update, Function.update_idem] at h₁
-      rw [subst, if_pos rfl]
-      exact Judgement.abs h₁
-    · simp only [subst, hxy]
-      apply Judgement.abs
-      rw [Context.update]
-      apply ih _ h₂
-      rwa [Function.update_comm (Ne.symm hxy)]
-  | app _ _ ih₁ ih₂ => cases h₁ with | app h₃ h₄ =>
-    exact Judgement.app (ih₁ h₃ h₂) (ih₂ h₄ h₂)
+      rw [Context.update_idem] at J₁
+      exact Judgement.abs J₁
+    · rw [Context.update_comm hxy] at J₁
+      exact Judgement.abs (ih J₁ J₂)
+  | app _ _ ih₁ ih₂ => cases J₁ with | app J₃ J₄ => exact Judgement.app (ih₁ J₃ J₂) (ih₂ J₄ J₂)
   | «true» | «false» =>
-    cases h₁
+    cases J₁
     constructor
-  | ite _ _ _ ih₁ ih₂ ih₃ => cases h₁ with | ite h₃ h₄ h₅ =>
-    exact Judgement.ite (ih₁ h₃ h₂) (ih₂ h₄ h₂) (ih₃ h₅ h₂)
+  | ite _ _ _ ih₁ ih₂ ih₃ => cases J₁ with | ite J₃ J₄ J₅ =>
+    exact Judgement.ite (ih₁ J₃ J₂) (ih₂ J₄ J₂) (ih₃ J₅ J₂)
 
 theorem preservation {t t' : Term} {τ : Ty} : (∅ ⊢ t : τ) → (t ⟶ t') → ∅ ⊢ t' : τ := by
-  set Γ : Context := ∅ with hΓ
-  clear_value Γ
-  intro h₁ h₂
-  induction h₁ generalizing t' with subst hΓ
-  | var | abs | «true» | «false» => cases h₂
-  | app h₃ h₄ ih₁ ih₂ =>
-    simp_rw [forall_const] at ih₁ ih₂
-    cases h₂ with
-    | app_cont => cases h₃ with | abs h₃ =>
-      exact subst_preserves_typing h₃ h₄
-    | app_cong_l h₅ => exact Judgement.app (ih₁ h₅) h₄
-    | app_cong_r _ h₅ => exact Judgement.app h₃ (ih₂ h₅)
-  | ite _ h₃ h₄ ih₁ =>
-    simp_rw [forall_const] at ih₁
-    cases h₂ with
-    | ite_cont_true => exact h₃
-    | ite_cont_false => exact h₄
-    | ite_cong h₂ => exact Judgement.ite (ih₁ h₂) h₃ h₄
+  generalize hΓ : (∅ : Context) = Γ
+  intro J h
+  induction J generalizing t' with subst hΓ
+  | var | abs | «true» | «false» => cases h
+  | app J₁ J₂ ih₁ ih₂ => cases h with
+    | app_cont => cases J₁ with | abs J₁ => exact subst_preserves_typing J₁ J₂
+    | app_cong_l h => exact Judgement.app (ih₁ rfl h) J₂
+    | app_cong_r _ h => exact Judgement.app J₁ (ih₂ rfl h)
+  | ite _ J₁ J₂ ih => cases h with
+    | ite_cont_true => exact J₁
+    | ite_cont_false => exact J₂
+    | ite_cong h => exact Judgement.ite (ih rfl h) J₁ J₂
 
 def Term.Stuck (t : Term) : Prop := ¬Value t ∧ ¬∃ t', t ⟶ t'
 
 theorem soundness {t t' : Term} {τ : Ty} : (∅ ⊢ t : τ) → (t ⟶* t') → ¬t'.Stuck := by
-  intro h₁ h₂ ⟨_, _⟩
-  induction h₂ using Relation.ReflTransGen.head_induction_on with
-  | refl => cases progress h₁ <;> contradiction
-  | head h₃ _ ih => exact ih (preservation h₁ h₃)
+  intro J h ⟨_, _⟩
+  induction h using Relation.ReflTransGen.head_induction_on with
+  | refl => cases progress J <;> contradiction
+  | head h' _ ih => exact ih (preservation J h')
 
 theorem type_uniqueness {Γ : Context} {t : Term} {τ τ' : Ty} :
     (Γ ⊢ t : τ) → (Γ ⊢ t : τ') → τ = τ' := by
-  intro h₁ h₂
-  induction h₁ generalizing τ' with
-  | var h₃ => cases h₂ with | var h₄ => rwa [h₃, Option.some_inj] at h₄
-  | abs _ ih => cases h₂ with | abs h₃ =>
-    rw [Ty.arrow.injEq, propext (and_iff_left (ih h₃))]
-  | app _ _ ih => cases h₂ with | app h₃ _ => injection ih h₃
+  intro J₁ J₂
+  induction J₁ generalizing τ' with
+  | var h₁ => cases J₂ with | var h₂ => rwa [h₁, Option.some_inj] at h₂
+  | abs _ ih => cases J₂ with | abs J₂ =>
+    congr
+    exact ih J₂
+  | app _ _ ih => cases J₂ with | app J₂ _ => injection ih J₂
   | «true» | «false» =>
-    cases h₂
+    cases J₂
     rfl
-  | ite _ _ _ _ _ ih => cases h₂ with | ite _ _ h₃ => exact ih h₃
+  | ite _ _ _ _ _ ih => cases J₂ with | ite _ _ J₂ => exact ih J₂
 
 end Stlc

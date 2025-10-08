@@ -15,7 +15,7 @@ def Context.update (Γ : Context) (x : String) (τ : Ty) : Context :=
 notation:arg x " ↦ " τ "; " Γ:arg => Context.update Γ x τ
 
 def Context.IncludedIn (Γ Γ' : Context) : Prop :=
-  ∀ {x τ}, Γ x = some τ → Γ' x = some τ
+  ∀ ⦃x τ⦄, Γ x = some τ → Γ' x = some τ
 
 instance : HasSubset Context :=
   ⟨Context.IncludedIn⟩
@@ -30,8 +30,26 @@ theorem Context.includedIn_update {Γ Γ' : Context} {x : String} {τ : Ty} :
   rw [←h₂]
   split_ifs with hyx
   · rfl
-  · simp only [hyx, ↓reduceIte] at h₂
+  · rw [if_neg hyx] at h₂
     rw [h₁ h₂, h₂]
+
+@[simp]
+theorem Context.update_self (x : String) (τ : Ty) (Γ : Context) :
+    Γ.update x τ x = τ := by
+  exact Function.update_self x τ Γ
+
+theorem Context.update_of_ne {x x' : String} (h : x ≠ x') (τ : Ty) (Γ : Context) :
+    Γ.update x' τ x = Γ x := by
+  exact Function.update_of_ne h τ Γ
+
+@[simp]
+theorem Context.update_idem {x : String} (τ₁ τ₂ : Ty) (Γ : Context) :
+    (Γ.update x τ₁).update x τ₂ = Γ.update x τ₂ := by
+  exact Function.update_idem τ₁ τ₂ Γ
+
+theorem Context.update_comm {x₁ x₂ : String} (h : x₁ ≠ x₂) (τ₁ τ₂ : Ty) (Γ : Context) :
+    (Γ.update x₁ τ₁).update x₂ τ₂ = (Γ.update x₂ τ₂).update x₁ τ₁ := by
+  exact Function.update_comm h τ₁ τ₂ Γ
 
 section
 set_option hygiene false
