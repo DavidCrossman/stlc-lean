@@ -44,6 +44,12 @@ theorem Multistep.tail {t₁ t₂ t₃ : Term} : (t₁ ⟶* t₂) → (t₂ ⟶ 
 theorem Multistep.single {t₁ t₂ : Term} : (t₁ ⟶ t₂) → (t₁ ⟶* t₂) :=
   Relation.ReflTransGen.single
 
+@[elab_as_elim]
+theorem Multistep.head_induction_on {b : Term} {motive : ∀ a, (a ⟶* b) → Prop} {a : Term}
+    (h : a ⟶* b) (refl : motive b refl)
+    (head : ∀ {a c} (h' : a ⟶ c) (h : c ⟶* b), motive c h → motive a (h.head h')) : motive a h :=
+  Relation.ReflTransGen.head_induction_on h refl head
+
 theorem Term.Value.no_step {t t' : Term} : Value t → ¬(t ⟶ t') := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 

@@ -91,7 +91,7 @@ def Term.Stuck (t : Term) : Prop := ¬Value t ∧ ¬∃ t', t ⟶ t'
 
 theorem soundness {t t' : Term} {τ : Ty} : (∅ ⊢ t : τ) → (t ⟶* t') → ¬t'.Stuck := by
   intro J h ⟨_, _⟩
-  induction h using Relation.ReflTransGen.head_induction_on with
+  induction h using Multistep.head_induction_on with
   | refl => cases progress J <;> contradiction
   | head h' _ ih => exact ih (preservation J h')
 
