@@ -23,6 +23,27 @@ end
 
 infixr:10 " ⟶ " => Step
 
+section
+open Syntax
+
+@[simp]
+theorem Step.var_not {t : Term} {x : String} : ¬(t[xⱽ] ⟶ t) := by
+  rintro ⟨⟩
+
+@[simp]
+theorem Step.abs_not {τ : Ty} {t₁ t₂ : Term} {x : String} : ¬(t[λ x : τ, t₁] ⟶ t₂) := by
+  rintro ⟨⟩
+
+@[simp]
+theorem Step.true_not {t : Term} : ¬(t[true] ⟶ t) := by
+  rintro ⟨⟩
+
+@[simp]
+theorem Step.false_not {t : Term} : ¬(t[false] ⟶ t) := by
+  rintro ⟨⟩
+
+end
+
 def Multistep := Relation.ReflTransGen Step
 
 infixr:10 " ⟶* " => Multistep
