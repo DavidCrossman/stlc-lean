@@ -42,6 +42,36 @@ theorem Step.true_not {t : Term} : ¬(t[true] ⟶ t) := by
 theorem Step.false_not {t : Term} : ¬(t[false] ⟶ t) := by
   rintro ⟨⟩
 
+@[simp]
+theorem Step.ite_cont_true_iff {t₁ t₂ t₃ : Term} :
+    (t[if true then t₁ else t₂] ⟶ t₃) ↔ (t₁ = t₃) := by
+  constructor
+  · intro h
+    cases h with
+    | ite_cont_true => rfl
+    | ite_cong h => cases h
+  · intro rfl
+    exact ite_cont_true
+
+@[simp]
+theorem Step.ite_cont_false_iff {t₁ t₂ t₃ : Term} :
+    (t[if false then t₁ else t₂] ⟶ t₃) ↔ (t₂ = t₃) := by
+  constructor
+  · intro h
+    cases h with
+    | ite_cont_false => rfl
+    | ite_cong h => cases h
+  · intro rfl
+    exact ite_cont_false
+
+@[simp]
+theorem Step.ite_cong_iff {t₁ t₁' t₂ t₃} :
+    (t[if t₁ then t₂ else t₃] ⟶ t[if t₁' then t₂ else t₃]) ↔ (t₁ ⟶ t₁') := by
+  constructor
+  · rintro ⟨⟩
+    assumption
+  · exact ite_cong
+
 end
 
 def Multistep := Relation.ReflTransGen Step
