@@ -17,7 +17,7 @@ def subst (x : String) (s t : Term) : Term := match t with
 | t[yⱽ] => if x = y then s else t
 | t[λ y : τ, t'] => if x = y then t else t[λ y : τ, [x := s] t']
 | t[t₁ t₂] => t[([x := s] t₁) ([x := s] t₂)]
-| t[true] | t[false] => t
+| .bool _ => t
 | t[if t₁ then t₂ else t₃] => t[if [x := s] t₁ then [x := s] t₂ else [x := s] t₃]
 
 end

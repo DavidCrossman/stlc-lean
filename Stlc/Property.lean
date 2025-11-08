@@ -8,7 +8,7 @@ theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t',
   intro J
   induction J with subst hΓ
   | var h => cases h
-  | abs | «true» | «false» =>
+  | abs | bool =>
     left
     constructor
   | @app _ _ _ t₁ t₂ J' _ iht₁ iht₂ =>
@@ -29,12 +29,13 @@ theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t',
     obtain ht₁ | ⟨t₁', ht₁⟩ := iht₁ rfl
     · cases J' with
       | var | app | ite => cases ht₁
-      | «true» =>
-        use t₂
-        exact Step.ite_cont_true
-      | «false» =>
-        use t₃
-        exact Step.ite_cont_false
+      | bool b => cases b with
+        | false =>
+          use t₃
+          exact Step.ite_cont_false
+        | true =>
+          use t₂
+          exact Step.ite_cont_true
     · use t₁'.ite t₂ t₃
       exact Step.ite_cong ht₁
 
@@ -44,7 +45,7 @@ theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ �
   | var h => exact Judgement.var (hΓ h)
   | abs _ ih => exact Judgement.abs (ih (Context.includedIn_update hΓ))
   | app _ _ ih₁ ih₂ => exact Judgement.app (ih₁ hΓ) (ih₂ hΓ)
-  | «true» | «false» => constructor
+  | bool => constructor
   | ite _ _ _ ih₁ ih₂ ih₃ => exact Judgement.ite (ih₁ hΓ) (ih₂ hΓ) (ih₃ hΓ)
 
 open Syntax in
@@ -67,7 +68,7 @@ theorem subst_preserves_typing {Γ : Context} {τ₁ τ₂ : Ty} {t₁ t₂ : Te
     · rw [Context.update_comm hxy] at J₁
       exact Judgement.abs (ih J₁ J₂)
   | app _ _ ih₁ ih₂ => cases J₁ with | app J₃ J₄ => exact Judgement.app (ih₁ J₃ J₂) (ih₂ J₄ J₂)
-  | «true» | «false» =>
+  | bool =>
     cases J₁
     constructor
   | ite _ _ _ ih₁ ih₂ ih₃ => cases J₁ with | ite J₃ J₄ J₅ =>
@@ -77,7 +78,7 @@ theorem preservation {t t' : Term} {τ : Ty} : (∅ ⊢ t : τ) → (t ⟶ t') �
   generalize hΓ : (∅ : Context) = Γ
   intro J h
   induction J generalizing t' with subst hΓ
-  | var | abs | «true» | «false» => cases h
+  | var | abs | bool => cases h
   | app J₁ J₂ ih₁ ih₂ => cases h with
     | app_cont => cases J₁ with | abs J₁ => exact subst_preserves_typing J₁ J₂
     | app_cong_l h => exact Judgement.app (ih₁ rfl h) J₂
@@ -104,7 +105,7 @@ theorem type_uniqueness {Γ : Context} {t : Term} {τ τ' : Ty} :
     congr
     exact ih J₂
   | app _ _ ih => cases J₂ with | app J₂ _ => injection ih J₂
-  | «true» | «false» =>
+  | bool =>
     cases J₂
     rfl
   | ite _ _ _ _ _ ih => cases J₂ with | ite _ _ J₂ => exact ih J₂

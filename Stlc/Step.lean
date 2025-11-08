@@ -23,25 +23,22 @@ end
 
 infixr:10 " ⟶ " => Step
 
-section
-open Syntax
-
+open Syntax in
 @[simp]
 theorem Step.var_not {t : Term} {x : String} : ¬(t[xⱽ] ⟶ t) := by
   rintro ⟨⟩
 
+open Syntax in
 @[simp]
 theorem Step.abs_not {τ : Ty} {t₁ t₂ : Term} {x : String} : ¬(t[λ x : τ, t₁] ⟶ t₂) := by
   rintro ⟨⟩
 
 @[simp]
-theorem Step.true_not {t : Term} : ¬(t[true] ⟶ t) := by
+theorem Step.bool_not {t : Term} {b : Bool} : ¬(.bool b ⟶ t) := by
   rintro ⟨⟩
 
-@[simp]
-theorem Step.false_not {t : Term} : ¬(t[false] ⟶ t) := by
-  rintro ⟨⟩
 
+open Syntax in
 @[simp]
 theorem Step.ite_cont_true_iff {t₁ t₂ t₃ : Term} :
     (t[if true then t₁ else t₂] ⟶ t₃) ↔ (t₁ = t₃) := by
@@ -53,6 +50,7 @@ theorem Step.ite_cont_true_iff {t₁ t₂ t₃ : Term} :
   · intro rfl
     exact ite_cont_true
 
+open Syntax in
 @[simp]
 theorem Step.ite_cont_false_iff {t₁ t₂ t₃ : Term} :
     (t[if false then t₁ else t₂] ⟶ t₃) ↔ (t₂ = t₃) := by
@@ -64,6 +62,7 @@ theorem Step.ite_cont_false_iff {t₁ t₂ t₃ : Term} :
   · intro rfl
     exact ite_cont_false
 
+open Syntax in
 @[simp]
 theorem Step.ite_cong_iff {t₁ t₁' t₂ t₃} :
     (t[if t₁ then t₂ else t₃] ⟶ t[if t₁' then t₂ else t₃]) ↔ (t₁ ⟶ t₁') := by
@@ -71,8 +70,6 @@ theorem Step.ite_cong_iff {t₁ t₁' t₂ t₃} :
   · rintro ⟨⟩
     assumption
   · exact ite_cong
-
-end
 
 def Multistep := Relation.ReflTransGen Step
 
@@ -119,48 +116,65 @@ def Term.step : Term → Option Term
 
 theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
   induction t generalizing t' with
-  | var | abs | «true» | «false» =>
-    simp only [step, reduceCtorEq, false_iff]
-    rintro ⟨⟩
+  | var | abs | bool => simp
   | app t₁ t₂ ht₁ ht₂ =>
     constructor <;> intro h
-    · cases t₁ with simp [step, value_iff] at h
-      | abs => cases t₂ with simp [step, value_iff] at h
-        | abs | «true» | «false» => simp [←h, Step.app_cont]
-        | app | ite =>
-          rcases h with ⟨t₃, h1, h₂⟩
-          simp [←h₂, Step.app_cong_r _ ((ht₂ t₃).mp h1)]
-      | app | ite =>
-        rcases h with ⟨t₃, h₁, h₂⟩
-        simp only [←h₂, Step.app_cong_l ((ht₁ t₃).mp h₁)]
-      | «true» | «false» =>
-        rcases h with ⟨t₃, h₁, h₂⟩
+    · cases t₁ with
+      | var => simp at h
+      | abs => cases t₂ with
+        | var => simp at h
+        | bool =>
+          rw [step, if_pos Value.bool, Option.some.injEq] at h
+          rw [←h]
+          exact Step.app_cont Value.bool
+        | abs =>
+          rw [step, if_pos Value.abs, Option.some.injEq] at h
+          rw [←h]
+          exact Step.app_cont Value.abs
+        | app =>
+          rw [step, if_neg Value.app_not, Option.map_eq_some_iff] at h
+          obtain ⟨t₃, h₁, h₂⟩ := h
+          rw [←h₂]
+          exact Step.app_cong_r Value.abs ((ht₂ t₃).mp h₁)
+        | ite =>
+          rw [step, if_neg Value.ite_not, Option.map_eq_some_iff] at h
+          obtain ⟨t₃, h₁, h₂⟩ := h
+          rw [←h₂]
+          exact Step.app_cong_r Value.abs ((ht₂ t₃).mp h₁)
+      | app =>
+        simp only [step, Value.app_not, ↓reduceIte, Option.map_eq_some_iff] at h
+        obtain ⟨t₃, h₁, h₂⟩ := h
+        simp [←h₂, Step.app_cong_l ((ht₁ t₃).mp h₁)]
+      | ite =>
+        simp only [step, Value.ite_not, ↓reduceIte, Option.map_eq_some_iff] at h
+        obtain ⟨t₃, h₁, h₂⟩ := h
+        simp [←h₂, Step.app_cong_l ((ht₁ t₃).mp h₁)]
+      | bool =>
+        simp only [step, Value.bool, ↓reduceIte, Option.map_eq_some_iff] at h
+        obtain ⟨t₃, h₁, h₂⟩ := h
         simp [←h₂, Step.app_cong_r _ ((ht₂ t₃).mp h₁)]
     · cases h with
-      | app_cont hb => simp [step, hb]
+      | app_cont hb => simp [hb]
       | app_cong_l h => cases t₁ with
-        | var | abs | «true» | «false» => cases h
-        | app | ite => simp [step, value_iff, ht₁, h]
+        | var | abs | bool => cases h
+        | app | ite => simp [ht₁, h]
       | @app_cong_r _ _ t₃ v h => cases t₁ with
         | var | app | ite => cases v
-        | abs =>
-          have h' := h.not_value
-          simp [step, h', (ht₂ t₃).mpr h]
-        | «true» | «false» => simp [step, (ht₂ t₃).mpr h]
+        | abs => simp [h.not_value, (ht₂ t₃).mpr h]
+        | bool => simp [(ht₂ t₃).mpr h]
   | ite t₁ _ _ ht₁ =>
     constructor <;> intro h
-    · cases t₁ with simp [step] at h
+    · cases t₁ with
+      | var | abs => simp at h
       | app | ite =>
-        rcases h with ⟨t₂, h₁, h₂⟩
+        simp only [step, Option.map_eq_some_iff] at h
+        obtain ⟨t₂, h₁, h₂⟩ := h
         rw [←h₂]
         exact Step.ite_cong ((ht₁ t₂).mp h₁)
-      | «true» => simp only [h, Step.ite_cont_true]
-      | «false» => simp only [h, Step.ite_cont_false]
+      | bool b => cases b <;> simp_all
     · cases h with
       | ite_cont_true | ite_cont_false => rw [step]
-      | @ite_cong _ t₂ _ _ h => cases t₁ with
-        | var | abs | «true» | «false» => cases h
-        | app | ite => simp only [step, (ht₁ t₂).mpr h, Option.map_some]
+      | ite_cong => cases t₁ <;> simp_all
 
 instance : DecidableRel Step := fun t₁ t₂ =>
   decidable_of_decidable_of_iff <| Term.step_iff_step t₁ t₂
@@ -216,12 +230,7 @@ theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t�
     | app_cont v₂ => cases v₂.no_step h₃
     | app_cong_l h₄ => cases v.no_step h₄
     | app_cong_r _ h₄ => rw [ih h₄]
-  | ite_cont_true => cases h₂ with
-    | ite_cont_true => rfl
-    | ite_cong h₃ => cases Term.Value.true.no_step h₃
-  | ite_cont_false => cases h₂ with
-    | ite_cont_false => rfl
-    | ite_cong h₃ => cases Term.Value.false.no_step h₃
+  | ite_cont_true | ite_cont_false => simp_all
   | ite_cong h₃ ih => cases h₂ with
     | ite_cont_true | ite_cont_false => cases h₃
     | ite_cong h₄ => rw [ih h₄]

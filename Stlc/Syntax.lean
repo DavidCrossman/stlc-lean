@@ -48,8 +48,8 @@ scoped macro_rules
 | `(t[ λ $x:stlc_ident : $τ:stlc_ty, $t:stlc_term ]) => `(Term.abs x[$x] τ[$τ] t[$t])
 | `(t[ λ $x:str : $τ:stlc_ty, $t:stlc_term ]) => `(Term.abs $x τ[$τ] t[$t])
 | `(t[ $t₁:stlc_term $t₂:stlc_term ]) => `(Term.app t[$t₁] t[$t₂])
-| `(t[ true ]) => `(Term.true)
-| `(t[ false ]) => `(Term.false)
+| `(t[ true ]) => `(Term.bool Bool.true)
+| `(t[ false ]) => `(Term.bool Bool.false)
 | `(t[ if $t₁:stlc_term then $t₂:stlc_term else $t₃:stlc_term ]) => `(Term.ite t[$t₁] t[$t₂] t[$t₃])
 | `(t[ ($t:stlc_term) ]) => `(t[$t])
 | `(t[ $($t:term) ]) => return t

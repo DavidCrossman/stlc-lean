@@ -65,8 +65,7 @@ inductive Judgement : Context → Term → Ty → Prop
 | var {Γ x τ} : Γ x = some τ → Γ ⊢ xⱽ : τ
 | abs {Γ x τ₁ τ₂ t} : (x ↦ τ₂; Γ ⊢ t : τ₁) → Γ ⊢ λ x : τ₂, t : τ₂ → τ₁
 | app {Γ τ τ' t₁ t₂} : (Γ ⊢ t₁ : τ → τ') → (Γ ⊢ t₂ : τ) → Γ ⊢ t₁ t₂ : τ'
-| true {Γ} : Γ ⊢ true : Bool
-| false {Γ} : Γ ⊢ false : Bool
+| bool {Γ} b : Γ ⊢ $(.bool b) : Bool
 | ite {Γ τ t₁ t₂ t₃} : (Γ ⊢ t₁ : Bool) → (Γ ⊢ t₂ : τ) → (Γ ⊢ t₃ : τ) → Γ ⊢ if t₁ then t₂ else t₃ : τ
 
 end

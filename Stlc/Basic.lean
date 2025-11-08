@@ -9,8 +9,7 @@ inductive Term : Type
 | var : String → Term
 | abs : String → Ty → Term → Term
 | app : Term → Term → Term
-| true
-| false
+| bool : Bool → Term
 | ite : Term → Term → Term → Term
 deriving DecidableEq
 
