@@ -50,7 +50,7 @@ theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ �
 
 open Syntax in
 theorem subst_preserves_typing {Γ : Context} {τ₁ τ₂ : Ty} {t₁ t₂ : Term} {x : String} :
-    (x ↦ τ₂; Γ ⊢ t₁ : τ₁) → (∅ ⊢ t₂ : τ₂) → Γ ⊢' [x := t₂] t₁ : τ₁ := by
+    (Γ; x ↦ τ₂ ⊢' t₁ : τ₁) → (∅ ⊢ t₂ : τ₂) → Γ ⊢' [x := t₂] t₁ : τ₁ := by
   intro J₁ J₂
   induction t₁ generalizing Γ τ₁ τ₂ with rw [subst]
   | var y => cases J₁ with | var h =>
