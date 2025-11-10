@@ -25,12 +25,12 @@ infixr:10 " ⟶ " => Step
 
 open Syntax in
 @[simp]
-theorem Step.var_not {t : Term} {x : String} : ¬(t[xⱽ] ⟶ t) := by
+theorem Step.var_not {t : Term} {x : TermVar} : ¬(t[xⱽ] ⟶ t) := by
   rintro ⟨⟩
 
 open Syntax in
 @[simp]
-theorem Step.abs_not {τ : Ty} {t₁ t₂ : Term} {x : String} : ¬(t[λ x : τ, t₁] ⟶ t₂) := by
+theorem Step.abs_not {τ : Ty} {t₁ t₂ : Term} {x : TermVar} : ¬(t[λ x : τ, t₁] ⟶ t₂) := by
   rintro ⟨⟩
 
 @[simp]
@@ -107,8 +107,7 @@ theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬t.Value := by
 open Syntax in
 @[simp]
 def Term.step : Term → Option Term
-| t[(λ x : τ, t₁) t₂] =>
-    if Value t₂ then subst x t₂ t₁ else t₂.step.map <| app (abs x τ t₁)
+| t[(λ x : τ, t₁) t₂] => if Value t₂ then subst x t₂ t₁ else t₂.step.map <| app (abs x τ t₁)
 | t[t₁ t₂] => if Value t₁ then t₂.step.map (app t₁) else t₁.step.map (app · t₂)
 | t[if true then t else _] | t[if false then _ else t] => t
 | t[if t₁ then t₂ else t₃] => t₁.step.map (ite · t₂ t₃)

@@ -49,7 +49,7 @@ theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ �
   | ite _ _ _ ih₁ ih₂ ih₃ => exact Judgement.ite (ih₁ hΓ) (ih₂ hΓ) (ih₃ hΓ)
 
 open Syntax in
-theorem subst_preserves_typing {Γ : Context} {τ₁ τ₂ : Ty} {t₁ t₂ : Term} {x : String} :
+theorem subst_preserves_typing {Γ : Context} {τ₁ τ₂ : Ty} {t₁ t₂ : Term} {x : TermVar} :
     (Γ; x ↦ τ₂ ⊢' t₁ : τ₁) → (∅ ⊢ t₂ : τ₂) → Γ ⊢' [x := t₂] t₁ : τ₁ := by
   intro J₁ J₂
   induction t₁ generalizing Γ τ₁ τ₂ with rw [subst]

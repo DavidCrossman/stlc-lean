@@ -13,7 +13,7 @@ local macro_rules
 | `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(subst $x t[$s] t[$t])
 
 @[simp]
-def subst (x : String) (s t : Term) : Term := match t with
+def subst (x : TermVar) (s t : Term) : Term := match t with
 | t[yⱽ] => if x = y then s else t
 | t[λ y : τ, t'] => if x = y then t else t[λ y : τ, [x := s] t']
 | t[t₁ t₂] => t[([x := s] t₁) ([x := s] t₂)]
