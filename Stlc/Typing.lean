@@ -4,12 +4,12 @@ import Stlc.Syntax
 
 namespace Stlc
 
-def Context : Type := String → Option Ty
+def Context : Type := TermVar → Option Ty
 
 instance : EmptyCollection Context :=
   ⟨fun _ ↦ none⟩
 
-def Context.update (Γ : Context) (x : String) (τ : Ty) : Context :=
+def Context.update (Γ : Context) (x : TermVar) (τ : Ty) : Context :=
   Function.update Γ x (some τ)
 
 
@@ -22,7 +22,7 @@ instance : HasSubset Context :=
 theorem Context.includedIn_empty (Γ : Context) : ∅ ⊆ Γ := by
   rintro _ _ ⟨⟩
 
-theorem Context.includedIn_update {Γ Γ' : Context} {x : String} {τ : Ty} :
+theorem Context.includedIn_update {Γ Γ' : Context} {x : TermVar} {τ : Ty} :
     Γ ⊆ Γ' → Γ.update x τ ⊆ Γ'.update x τ := by
   simp only [Subset, IncludedIn, update, Function.update_apply]
   intro h₁ y τ' h₂
@@ -33,20 +33,20 @@ theorem Context.includedIn_update {Γ Γ' : Context} {x : String} {τ : Ty} :
     rw [h₁ h₂, h₂]
 
 @[simp]
-theorem Context.update_self (x : String) (τ : Ty) (Γ : Context) :
+theorem Context.update_self (x : TermVar) (τ : Ty) (Γ : Context) :
     Γ.update x τ x = τ := by
   exact Function.update_self x τ Γ
 
-theorem Context.update_of_ne {x x' : String} (h : x ≠ x') (τ : Ty) (Γ : Context) :
+theorem Context.update_of_ne {x x' : TermVar} (h : x ≠ x') (τ : Ty) (Γ : Context) :
     Γ.update x' τ x = Γ x := by
   exact Function.update_of_ne h τ Γ
 
 @[simp]
-theorem Context.update_idem {x : String} (τ₁ τ₂ : Ty) (Γ : Context) :
+theorem Context.update_idem {x : TermVar} (τ₁ τ₂ : Ty) (Γ : Context) :
     (Γ.update x τ₁).update x τ₂ = Γ.update x τ₂ := by
   exact Function.update_idem τ₁ τ₂ Γ
 
-theorem Context.update_comm {x₁ x₂ : String} (h : x₁ ≠ x₂) (τ₁ τ₂ : Ty) (Γ : Context) :
+theorem Context.update_comm {x₁ x₂ : TermVar} (h : x₁ ≠ x₂) (τ₁ τ₂ : Ty) (Γ : Context) :
     (Γ.update x₁ τ₁).update x₂ τ₂ = (Γ.update x₂ τ₂).update x₁ τ₁ := by
   exact Function.update_comm h τ₁ τ₂ Γ
 
