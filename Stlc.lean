@@ -1,5 +1,6 @@
 import Stlc.Basic
 import Stlc.Syntax
+import Stlc.FreeVars
 import Stlc.Subst
 import Stlc.Value
 import Stlc.Step
