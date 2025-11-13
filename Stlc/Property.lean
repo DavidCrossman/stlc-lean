@@ -110,4 +110,34 @@ theorem type_uniqueness {Γ : Context} {t : Term} {τ τ' : Ty} :
     rfl
   | ite _ _ _ _ _ ih => cases J₂ with | ite _ _ J₂ => exact ih J₂
 
+theorem free_in_context {Γ : Context} {τ : Ty} {t : Term} {x : TermVar} :
+    x ∈ t.freeVars → (Γ ⊢ t : τ) → ∃ τ', Γ x = some τ' := by
+  intro h J
+  induction t generalizing Γ τ with
+  | var _ =>
+    rw [Term.freeVars, Finset.mem_singleton] at h
+    subst h
+    use τ
+    cases J
+    assumption
+  | abs _ _ _ ih =>
+    rw [Term.freeVars, Finset.mem_sdiff, Finset.mem_singleton] at h
+    cases J with | abs J =>
+    specialize ih h.left J
+    rw [Context.update_of_ne h.right] at ih
+    exact ih
+  | app _ _ ih₁ ih₂ =>
+    cases J with | app J₁ J₂ =>
+    rw [Term.freeVars, Finset.mem_union] at h
+    obtain h | h := h
+    · exact ih₁ h J₁
+    · exact ih₂ h J₂
+  | bool _ => cases h
+  | ite _ _ _ ih₁ ih₂ ih₃ =>
+    cases J with | ite J₁ J₂ J₃ =>
+    rw [Term.freeVars, Finset.union_assoc, Finset.mem_union, Finset.mem_union] at h
+    obtain h | h | h := h
+    · exact ih₁ h J₁
+    · exact ih₂ h J₂
+    · exact ih₃ h J₃
 end Stlc
