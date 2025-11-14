@@ -1,3 +1,4 @@
+import Stlc.FreeVars
 import Stlc.Step
 import Stlc.Typing
 
@@ -140,4 +141,13 @@ theorem free_in_context {Γ : Context} {τ : Ty} {t : Term} {x : TermVar} :
     · exact ih₁ h J₁
     · exact ih₂ h J₂
     · exact ih₃ h J₃
+
+theorem typeable_empty_closed {τ : Ty} {t : Term} : (∅ ⊢ t : τ) → FreeVars.Closed t TermVar := by
+  contrapose
+  rw [FreeVars.Closed, Finset.eq_empty_iff_forall_notMem]
+  push_neg
+  intro ⟨x, h⟩ J
+  have h' := free_in_context h J
+  simp at h'
+
 end Stlc
