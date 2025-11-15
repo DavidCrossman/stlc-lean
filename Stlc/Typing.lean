@@ -6,12 +6,15 @@ namespace Stlc
 
 def Context : Type := TermVar → Option Ty
 
+@[ext]
+def Context.ext {Γ₁ Γ₂ : Context} (h : ∀ x, Γ₁ x = Γ₂ x) : Γ₁ = Γ₂ :=
+  funext h
+
 instance : EmptyCollection Context :=
   ⟨fun _ ↦ none⟩
 
 def Context.update (Γ : Context) (x : TermVar) (τ : Ty) : Context :=
   Function.update Γ x (some τ)
-
 
 def Context.IncludedIn (Γ Γ' : Context) : Prop :=
   ∀ ⦃x τ⦄, Γ x = some τ → Γ' x = some τ
