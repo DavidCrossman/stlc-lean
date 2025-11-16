@@ -150,4 +150,34 @@ theorem typeable_empty_closed {τ : Ty} {t : Term} : (∅ ⊢ t : τ) → FreeVa
   have h' := free_in_context h J
   simp at h'
 
+theorem context_invariance {Γ Γ' : Context} {t : Term} {τ : Ty} :
+    (Γ ⊢ t : τ) → (∀ x ∈ t.freeVars, Γ x = Γ' x) → Γ' ⊢ t : τ := by
+  intro J h
+  induction J generalizing Γ' with
+  | var h' =>
+    simp_rw [Term.freeVars, Finset.mem_singleton, forall_eq] at h
+    rw [h] at h'
+    exact Judgement.var h'
+  | @abs _ x _ _ _ J ih =>
+    simp_rw [Term.freeVars, Finset.mem_sdiff, Finset.mem_singleton, and_imp] at h
+    constructor
+    apply ih
+    intro y h'
+    by_cases hyx : y = x
+    · rw [hyx, Context.update_self, Context.update_self]
+    · rw [Context.update_of_ne hyx, Context.update_of_ne hyx]
+      exact h y h' hyx
+  | app _ _ ih₁ ih₂ =>
+    simp_rw [Term.freeVars, Finset.mem_union] at h
+    specialize ih₁ (fun x h' ↦ h x (Or.inl h'))
+    specialize ih₂ (fun x h' ↦ h x (Or.inr h'))
+    exact Judgement.app ih₁ ih₂
+  | bool b => exact Judgement.bool b
+  | ite _ _ _ ih₁ ih₂ ih₃ =>
+    simp_rw [Term.freeVars, Finset.mem_union] at h
+    specialize ih₁ (fun x h' ↦ h x (Or.inl <| Or.inl h'))
+    specialize ih₂ (fun x h' ↦ h x (Or.inl <| Or.inr h'))
+    specialize ih₃ (fun x h' ↦ h x (Or.inr h'))
+    exact Judgement.ite ih₁ ih₂ ih₃
+
 end Stlc
