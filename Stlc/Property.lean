@@ -19,7 +19,7 @@ theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t',
       · cases J' with
         | var | app | ite => cases ht₁
         | @abs _ x _ _ t₁ =>
-          use subst x t₂ t₁
+          use Term.subst x t₂ t₁
           exact Step.app_cont ht₂
       · use t₁.app t₂'
         exact Step.app_cong_r ht₁ ht₂
@@ -53,7 +53,7 @@ open Syntax in
 theorem subst_preserves_typing {Γ : Context} {τ₁ τ₂ : Ty} {t₁ t₂ : Term} {x : TermVar} :
     (Γ; x ↦ τ₂ ⊢' t₁ : τ₁) → (∅ ⊢ t₂ : τ₂) → Γ ⊢' [x := t₂] t₁ : τ₁ := by
   intro J₁ J₂
-  induction t₁ generalizing Γ τ₁ τ₂ with rw [subst]
+  induction t₁ generalizing Γ τ₁ τ₂ with simp_rw [Subst.subst, Term.subst]
   | var y => cases J₁ with | var h =>
     split_ifs with hxy
     · rw [hxy, Context.update_self, Option.some.injEq] at h

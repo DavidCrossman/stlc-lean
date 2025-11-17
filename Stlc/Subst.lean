@@ -1,7 +1,11 @@
-import Stlc.Basic
-import Stlc.Syntax
+import Stlc.FreeVars
 
 namespace Stlc
+
+class Subst (α β γ : Type*) where
+  subst : α → β → γ → γ
+
+attribute [simp] Subst.subst
 
 section
 set_option hygiene false
@@ -10,10 +14,10 @@ open Syntax
 
 local syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
 local macro_rules
-| `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(subst $x t[$s] t[$t])
+| `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(Term.subst $x t[$s] t[$t])
 
 @[simp]
-def subst (x : TermVar) (s t : Term) : Term := match t with
+def Term.subst (x : TermVar) (s t : Term) : Term := match t with
 | t[yⱽ] => if x = y then s else t
 | t[λ y : τ, t'] => if x = y then t else t[λ y : τ, [x := s] t']
 | t[t₁ t₂] => t[([x := s] t₁) ([x := s] t₂)]
@@ -22,13 +26,16 @@ def subst (x : TermVar) (s t : Term) : Term := match t with
 
 end
 
+instance : Subst TermVar Term Term :=
+  ⟨Term.subst⟩
+
 namespace Syntax
 
 scoped syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
 scoped syntax:lead "[" str " := " stlc_term "]" stlc_term:max : stlc_term
 scoped macro_rules
-| `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(subst $x t[$s] t[$t])
-| `(t[ [$x:str := $s:stlc_term] $t:stlc_term ]) => `(subst $x t[$s] t[$t])
+| `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(Subst.subst $x t[$s] t[$t])
+| `(t[ [$x:str := $s:stlc_term] $t:stlc_term ]) => `(Subst.subst $x t[$s] t[$t])
 
 end Syntax
 
