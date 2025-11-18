@@ -1,3 +1,4 @@
+import Mathlib.Data.Finset.Basic
 import Stlc.FreeVars
 
 namespace Stlc
@@ -6,6 +7,17 @@ class Subst (α β γ : Type*) where
   subst : α → β → γ → γ
 
 attribute [simp] Subst.subst
+
+class LawfulSubst (α β γ : Type*) [DecidableEq α] [FreeVars γ α] [FreeVars β α]
+    extends Subst α β γ where
+  subst_eq_of_notMem {a : α} {b : β} {c : γ} : a ∉ FreeVars.freeVars c → subst a b c = c
+  subst_comm {a₁ a₂ : α} {b₁ b₂ : β} {c : γ} :
+    a₁ ≠ a₂ → a₁ ∉ FreeVars.freeVars b₂ → a₂ ∉ FreeVars.freeVars b₁ →
+    subst a₂ b₂ (subst a₁ b₁ c) = subst a₁ b₁ (subst a₂ b₂ c)
+  freeVars_subst_eq_of_closed {a : α} {b : β} {c : γ} :
+    FreeVars.Closed b α → FreeVars.freeVars (subst a b c) = FreeVars.freeVars c \ {a}
+
+attribute [simp] LawfulSubst.subst_eq_of_notMem LawfulSubst.freeVars_subst_eq_of_closed
 
 section
 set_option hygiene false
