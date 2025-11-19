@@ -19,6 +19,12 @@ class LawfulSubst (α β γ : Type*) [DecidableEq α] [FreeVars γ α] [FreeVars
 
 attribute [simp] LawfulSubst.subst_eq_of_notMem LawfulSubst.freeVars_subst_eq_of_closed
 
+@[simp]
+theorem Subst.subst_eq_of_closed {α β γ : Type*} {a : α} {b : β} {c : γ} [DecidableEq α]
+  [FreeVars γ α] [FreeVars β α] [LawfulSubst α β γ] (hc : FreeVars.Closed c α) :
+    subst a b c = c := by
+  rw [LawfulSubst.subst_eq_of_notMem (hc.notMem_freeVars a)]
+
 section
 set_option hygiene false
 
