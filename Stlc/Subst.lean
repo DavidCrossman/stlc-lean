@@ -25,6 +25,14 @@ theorem Subst.subst_eq_of_closed {α β γ : Type*} {a : α} {b : β} {c : γ} [
     subst a b c = c := by
   rw [LawfulSubst.subst_eq_of_notMem (hc.notMem_freeVars a)]
 
+@[simp]
+theorem Subst.idem_of_closed {α β γ : Type*} {a : α} {b₁ b₂ : β} {c : γ} [DecidableEq α]
+  [FreeVars γ α] [FreeVars β α] [LawfulSubst α β γ] (hb₁ : FreeVars.Closed b₁ α) :
+    subst a b₂ (subst a b₁ c) = subst a b₁ c := by
+  rw [LawfulSubst.subst_eq_of_notMem]
+  rw [LawfulSubst.freeVars_subst_eq_of_closed hb₁]
+  exact Finset.notMem_sdiff_of_mem_right (Finset.mem_singleton.mpr rfl)
+
 section
 set_option hygiene false
 
