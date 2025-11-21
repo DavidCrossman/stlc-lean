@@ -55,6 +55,27 @@ end
 instance : Subst TermVar Term Term :=
   ⟨Term.subst⟩
 
+@[simp]
+theorem Term.subst_eq_of_notMem {x : TermVar} {t₁ t₂ : Term} :
+    x ∉ t₂.freeVars → subst x t₁ t₂ = t₂ := by
+  intro h
+  induction t₂ with rw [subst]
+  | var =>
+    rw [freeVars, Finset.notMem_singleton] at h
+    rw [if_neg h]
+  | abs _ _ t ih =>
+    rw [freeVars, Finset.mem_sdiff, Finset.mem_singleton, not_and_not_right] at h
+    by_cases hx : x ∈ t.freeVars
+    · rw [if_pos (h hx)]
+    · rw [ih hx, ite_id]
+  | app _ _ ih₁ ih₂ =>
+    rw [freeVars, Finset.notMem_union] at h
+    rw [ih₁ h.left, ih₂ h.right]
+  | ite _ _ _ ih₁ ih₂ ih₃ =>
+    rw [freeVars, Finset.notMem_union, Finset.notMem_union] at h
+    obtain ⟨⟨h₁, h₂⟩, h₃⟩ := h
+    rw [ih₁ h₁, ih₂ h₂, ih₃ h₃]
+
 namespace Syntax
 
 scoped syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
