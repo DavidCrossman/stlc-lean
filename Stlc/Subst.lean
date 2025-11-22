@@ -76,6 +76,28 @@ theorem Term.subst_eq_of_notMem {x : TermVar} {t₁ t₂ : Term} :
     obtain ⟨⟨h₁, h₂⟩, h₃⟩ := h
     rw [ih₁ h₁, ih₂ h₂, ih₃ h₃]
 
+theorem Term.subst_comm {t₁ t₂ t : Term} {x₁ x₂ : TermVar} :
+    x₁ ≠ x₂ → x₁ ∉ freeVars t₂ → x₂ ∉ freeVars t₁ →
+    subst x₂ t₂ (subst x₁ t₁ t) = subst x₁ t₁ (subst x₂ t₂ t) := by
+  intro _ h₁ h₂
+  induction t with simp_rw [subst]
+  | var =>
+    split_ifs with hy₁ hy₂ hy₂
+    · rw [←hy₂] at hy₁
+      contradiction
+    · rw [subst, if_pos hy₁, subst_eq_of_notMem h₂]
+    · rw [subst, if_pos hy₂, subst_eq_of_notMem h₁]
+    · rw [subst, subst, if_neg hy₂, if_neg hy₁]
+  | abs _ _ _ ih =>
+    split_ifs with hy₁ hy₂ hy₂
+    · rw [←hy₂] at hy₁
+      contradiction
+    · rw [subst, subst, if_pos hy₁, if_neg hy₂]
+    · rw [subst, subst, if_neg hy₁, if_pos hy₂]
+    · rw [subst, subst, if_neg hy₁, if_neg hy₂, ih]
+  | app _ _ ih₁ ih₂ => rw [ih₁, ih₂]
+  | ite _ _ _ ih₁ ih₂ ih₃ => rw [ih₁, ih₂, ih₃]
+
 namespace Syntax
 
 scoped syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
