@@ -98,6 +98,24 @@ theorem Term.subst_comm {t₁ t₂ t : Term} {x₁ x₂ : TermVar} :
   | app _ _ ih₁ ih₂ => rw [ih₁, ih₂]
   | ite _ _ _ ih₁ ih₂ ih₃ => rw [ih₁, ih₂, ih₃]
 
+@[simp]
+theorem Term.freeVars_subst_eq_of_closed {x : TermVar} {t₁ t₂ : Term} :
+    FreeVars.Closed t₁ TermVar → (subst x t₁ t₂).freeVars = t₂.freeVars \ {x} := fun _ ↦ by
+  induction t₂ with rw [subst, freeVars]
+  | var =>
+    split_ifs with h
+    · rwa [h, Finset.sdiff_self]
+    · rw [freeVars, Finset.sdiff_singleton_eq_erase, Finset.erase_eq_of_notMem]
+      exact Finset.notMem_singleton.mpr h
+  | abs _ _ _ ih =>
+    split_ifs with h
+    · rw [h, freeVars, Finset.sdiff_idem]
+    · rw [freeVars, ih, sdiff_right_comm]
+  | app t₃ t₄ ih₁ ih₂ => rw [freeVars, Finset.union_sdiff_distrib, ih₁, ih₂]
+  | bool => rfl
+  | ite _ _ _ ih₁ ih₂ ih₃ =>
+    rw [freeVars, ih₁, ih₂, ih₃, Finset.union_sdiff_distrib, Finset.union_sdiff_distrib]
+
 namespace Syntax
 
 scoped syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
