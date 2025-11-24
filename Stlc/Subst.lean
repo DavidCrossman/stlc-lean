@@ -116,6 +116,9 @@ theorem Term.freeVars_subst_eq_of_closed {x : TermVar} {t₁ t₂ : Term} :
   | ite _ _ _ ih₁ ih₂ ih₃ =>
     rw [freeVars, ih₁, ih₂, ih₃, Finset.union_sdiff_distrib, Finset.union_sdiff_distrib]
 
+instance : LawfulSubst TermVar Term Term :=
+  ⟨Term.subst_eq_of_notMem, Term.subst_comm, Term.freeVars_subst_eq_of_closed⟩
+
 namespace Syntax
 
 scoped syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
