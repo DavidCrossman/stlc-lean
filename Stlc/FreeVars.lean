@@ -4,6 +4,8 @@ import Stlc.Syntax
 
 namespace Stlc
 
+variable {c : Config}
+
 open Syntax
 
 class FreeVars (α β : Type*) [DecidableEq β] where
@@ -21,14 +23,14 @@ def FreeVars.Closed.notMem_freeVars {α β : Type*} {a : α} [DecidableEq β] [F
   exact Finset.notMem_empty b
 
 @[simp]
-def Term.freeVars : Term → Finset TermVar
+def Term.freeVars : Term c → Finset TermVar
 | t[xⱽ] => {x}
 | t[λ x : _, t] => t.freeVars \ {x}
 | t[t₁ t₂]  => t₁.freeVars ∪ t₂.freeVars
-| .bool _ => ∅
+| bool _ => ∅
 | t[if t₁ then t₂ else t₃] => t₁.freeVars ∪ t₂.freeVars ∪ t₃.freeVars
 
-instance : FreeVars Term TermVar :=
+instance : FreeVars (Term c) TermVar :=
   ⟨Term.freeVars⟩
 
 end Stlc

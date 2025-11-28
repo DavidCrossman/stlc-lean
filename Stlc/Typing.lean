@@ -4,28 +4,30 @@ import Stlc.Syntax
 
 namespace Stlc
 
-def Context : Type := TermVar → Option Ty
+variable {c : Config}
+
+def Context (c : Config) : Type := TermVar → Option (Ty c)
 
 @[ext]
-def Context.ext {Γ₁ Γ₂ : Context} (h : ∀ x, Γ₁ x = Γ₂ x) : Γ₁ = Γ₂ :=
+def Context.ext {Γ₁ Γ₂ : Context c} (h : ∀ x, Γ₁ x = Γ₂ x) : Γ₁ = Γ₂ :=
   funext h
 
-instance : EmptyCollection Context :=
+instance : EmptyCollection (Context c) :=
   ⟨fun _ ↦ none⟩
 
-def Context.update (Γ : Context) (x : TermVar) (τ : Ty) : Context :=
+def Context.update (Γ : Context c) (x : TermVar) (τ : Ty c) : Context c :=
   Function.update Γ x (some τ)
 
-def Context.IncludedIn (Γ Γ' : Context) : Prop :=
+def Context.IncludedIn (Γ Γ' : Context c) : Prop :=
   ∀ ⦃x τ⦄, Γ x = some τ → Γ' x = some τ
 
-instance : HasSubset Context :=
+instance : HasSubset (Context c) :=
   ⟨Context.IncludedIn⟩
 
-theorem Context.includedIn_empty (Γ : Context) : ∅ ⊆ Γ := by
+theorem Context.includedIn_empty (Γ : Context c) : ∅ ⊆ Γ := by
   rintro _ _ ⟨⟩
 
-theorem Context.includedIn_update {Γ Γ' : Context} {x : TermVar} {τ : Ty} :
+theorem Context.includedIn_update {Γ Γ' : Context c} {x : TermVar} {τ : Ty c} :
     Γ ⊆ Γ' → Γ.update x τ ⊆ Γ'.update x τ := by
   simp only [Subset, IncludedIn, update, Function.update_apply]
   intro h₁ y τ' h₂
@@ -36,20 +38,20 @@ theorem Context.includedIn_update {Γ Γ' : Context} {x : TermVar} {τ : Ty} :
     rw [h₁ h₂, h₂]
 
 @[simp]
-theorem Context.update_self (x : TermVar) (τ : Ty) (Γ : Context) :
+theorem Context.update_self (x : TermVar) (τ : Ty c) (Γ : Context c) :
     Γ.update x τ x = τ := by
   exact Function.update_self x τ Γ
 
-theorem Context.update_of_ne {x x' : TermVar} (h : x ≠ x') (τ : Ty) (Γ : Context) :
+theorem Context.update_of_ne {x x' : TermVar} (h : x ≠ x') (τ : Ty c) (Γ : Context c) :
     Γ.update x' τ x = Γ x := by
   exact Function.update_of_ne h τ Γ
 
 @[simp]
-theorem Context.update_idem {x : TermVar} (τ₁ τ₂ : Ty) (Γ : Context) :
+theorem Context.update_idem {x : TermVar} (τ₁ τ₂ : Ty c) (Γ : Context c) :
     (Γ.update x τ₁).update x τ₂ = Γ.update x τ₂ := by
-  exact Function.update_idem τ₁ τ₂ Γ
+  exact Function.update_idem _ _ Γ
 
-theorem Context.update_comm {x₁ x₂ : TermVar} (h : x₁ ≠ x₂) (τ₁ τ₂ : Ty) (Γ : Context) :
+theorem Context.update_comm {x₁ x₂ : TermVar} (h : x₁ ≠ x₂) (τ₁ τ₂ : Ty c) (Γ : Context c) :
     (Γ.update x₁ τ₁).update x₂ τ₂ = (Γ.update x₂ τ₂).update x₁ τ₁ := by
   exact Function.update_comm h τ₁ τ₂ Γ
 
@@ -76,19 +78,20 @@ open Syntax
 local syntax stlc_ctx " ⊢ " stlc_term " : " stlc_ty : term
 
 local macro_rules
-| `($Γ:stlc_ctx ⊢ $t:stlc_term : $τ:stlc_ty) => `(Judgement Γ[$Γ] t[$t] τ[$τ])
+| `($Γ:stlc_ctx ⊢ $t:stlc_term : $τ:stlc_ty) => `(Judgement _ Γ[$Γ] t[$t] τ[$τ])
 
-inductive Judgement : Context → Term → Ty → Prop
+inductive Judgement (c : Config) : Context c → Term c → Ty c → Prop
 | var {Γ x τ} : Γ x = some τ → Γ ⊢ xⱽ : τ
 | abs {Γ x τ₁ τ₂ t} : (Γ; x ↦ τ₂ ⊢ t : τ₁) → Γ ⊢ λ x : τ₂, t : τ₂ → τ₁
 | app {Γ τ τ' t₁ t₂} : (Γ ⊢ t₁ : τ → τ') → (Γ ⊢ t₂ : τ) → Γ ⊢ t₁ t₂ : τ'
-| bool {Γ} b : Γ ⊢ $(.bool b) : Bool
-| ite {Γ τ t₁ t₂ t₃} : (Γ ⊢ t₁ : Bool) → (Γ ⊢ t₂ : τ) → (Γ ⊢ t₃ : τ) → Γ ⊢ if t₁ then t₂ else t₃ : τ
+| bool {Γ} b [c.HasBool] : Γ ⊢ $(.bool b) : Bool
+| ite {Γ τ t₁ t₂ t₃} [c.HasBool] :
+  (Γ ⊢ t₁ : Bool) → (Γ ⊢ t₂ : τ) → (Γ ⊢ t₃ : τ) → Γ ⊢ if t₁ then t₂ else t₃ : τ
 
 end
 
 @[match_pattern]
-notation Γ " ⊢ " t " : " τ => Judgement Γ t τ
+notation Γ " ⊢ " t " : " τ => Judgement _ Γ t τ
 
 namespace Syntax
 

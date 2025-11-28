@@ -4,8 +4,10 @@ import Stlc.Typing
 
 namespace Stlc
 
-theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t', t ⟶ t' := by
-  generalize hΓ : (∅ : Context) = Γ
+variable {c : Config}
+
+theorem progress {t : Term c} {τ : Ty c} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t', t ⟶ t' := by
+  generalize hΓ : (∅ : Context c) = Γ
   intro J
   induction J with subst hΓ
   | var h => cases h
@@ -25,7 +27,7 @@ theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t',
         exact Step.app_cong_r ht₁ ht₂
     · use t₁'.app t₂
       exact Step.app_cong_l ht₁
-  | @ite _ _ t₁ t₂ t₃ J' _ _ iht₁ =>
+  | @ite _ _ t₁ t₂ t₃ _ J' _ _ iht₁ =>
     right
     obtain ht₁ | ⟨t₁', ht₁⟩ := iht₁ rfl
     · cases J' with
@@ -40,7 +42,8 @@ theorem progress {t : Term} {τ : Ty} : (∅ ⊢ t : τ) → t.Value ∨ ∃ t',
     · use t₁'.ite t₂ t₃
       exact Step.ite_cong ht₁
 
-theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ ⊢ t : τ) → Γ' ⊢ t : τ := by
+theorem weakening {Γ Γ' : Context c} {t : Term c} {τ : Ty c} :
+    Γ ⊆ Γ' → (Γ ⊢ t : τ) → Γ' ⊢ t : τ := by
   intro hΓ h
   induction h generalizing Γ' with
   | var h => exact Judgement.var (hΓ h)
@@ -50,7 +53,7 @@ theorem weakening {Γ Γ' : Context} {t : Term} {τ : Ty} : Γ ⊆ Γ' → (Γ �
   | ite _ _ _ ih₁ ih₂ ih₃ => exact Judgement.ite (ih₁ hΓ) (ih₂ hΓ) (ih₃ hΓ)
 
 open Syntax in
-theorem subst_preserves_typing {Γ : Context} {τ₁ τ₂ : Ty} {t₁ t₂ : Term} {x : TermVar} :
+theorem subst_preserves_typing {Γ : Context c} {τ₁ τ₂ : Ty c} {t₁ t₂ : Term c} {x : TermVar} :
     (Γ; x ↦ τ₂ ⊢' t₁ : τ₁) → (∅ ⊢ t₂ : τ₂) → Γ ⊢' [x := t₂] t₁ : τ₁ := by
   intro J₁ J₂
   induction t₁ generalizing Γ τ₁ τ₂ with simp_rw [Subst.subst, Term.subst]
@@ -75,8 +78,8 @@ theorem subst_preserves_typing {Γ : Context} {τ₁ τ₂ : Ty} {t₁ t₂ : Te
   | ite _ _ _ ih₁ ih₂ ih₃ => cases J₁ with | ite J₃ J₄ J₅ =>
     exact Judgement.ite (ih₁ J₃ J₂) (ih₂ J₄ J₂) (ih₃ J₅ J₂)
 
-theorem preservation {t t' : Term} {τ : Ty} : (∅ ⊢ t : τ) → (t ⟶ t') → ∅ ⊢ t' : τ := by
-  generalize hΓ : (∅ : Context) = Γ
+theorem preservation {t t' : Term c} {τ : Ty c} : (∅ ⊢ t : τ) → (t ⟶ t') → ∅ ⊢ t' : τ := by
+  generalize hΓ : (∅ : Context c) = Γ
   intro J h
   induction J generalizing t' with subst hΓ
   | var | abs | bool => cases h
@@ -89,15 +92,15 @@ theorem preservation {t t' : Term} {τ : Ty} : (∅ ⊢ t : τ) → (t ⟶ t') �
     | ite_cont_false => exact J₂
     | ite_cong h => exact Judgement.ite (ih rfl h) J₁ J₂
 
-def Term.Stuck (t : Term) : Prop := ¬Value t ∧ ¬∃ t', t ⟶ t'
+def Term.Stuck (t : Term c) : Prop := ¬t.Value ∧ ¬∃ t', t ⟶ t'
 
-theorem soundness {t t' : Term} {τ : Ty} : (∅ ⊢ t : τ) → (t ⟶* t') → ¬t'.Stuck := by
+theorem soundness {t t' : Term c} {τ : Ty c} : (∅ ⊢ t : τ) → (t ⟶* t') → ¬t'.Stuck := by
   intro J h ⟨_, _⟩
   induction h using Multistep.head_induction_on with
   | refl => cases progress J <;> contradiction
   | head h' _ ih => exact ih (preservation J h')
 
-theorem type_uniqueness {Γ : Context} {t : Term} {τ τ' : Ty} :
+theorem type_uniqueness {Γ : Context c} {t : Term c} {τ τ' : Ty c} :
     (Γ ⊢ t : τ) → (Γ ⊢ t : τ') → τ = τ' := by
   intro J₁ J₂
   induction J₁ generalizing τ' with
@@ -111,7 +114,7 @@ theorem type_uniqueness {Γ : Context} {t : Term} {τ τ' : Ty} :
     rfl
   | ite _ _ _ _ _ ih => cases J₂ with | ite _ _ J₂ => exact ih J₂
 
-theorem free_in_context {Γ : Context} {τ : Ty} {t : Term} {x : TermVar} :
+theorem free_in_context {Γ : Context c} {τ : Ty c} {t : Term c} {x : TermVar} :
     x ∈ t.freeVars → (Γ ⊢ t : τ) → ∃ τ', Γ x = some τ' := by
   intro h J
   induction t generalizing Γ τ with
@@ -142,7 +145,8 @@ theorem free_in_context {Γ : Context} {τ : Ty} {t : Term} {x : TermVar} :
     · exact ih₂ h J₂
     · exact ih₃ h J₃
 
-theorem typeable_empty_closed {τ : Ty} {t : Term} : (∅ ⊢ t : τ) → FreeVars.Closed t TermVar := by
+theorem typeable_empty_closed {τ : Ty c} {t : Term c} :
+    (∅ ⊢ t : τ) → FreeVars.Closed t TermVar := by
   contrapose
   rw [FreeVars.Closed, Finset.eq_empty_iff_forall_notMem]
   push_neg
@@ -150,7 +154,7 @@ theorem typeable_empty_closed {τ : Ty} {t : Term} : (∅ ⊢ t : τ) → FreeVa
   have h' := free_in_context h J
   simp at h'
 
-theorem context_invariance {Γ Γ' : Context} {t : Term} {τ : Ty} :
+theorem context_invariance {Γ Γ' : Context c} {t : Term c} {τ : Ty c} :
     (Γ ⊢ t : τ) → (∀ x ∈ t.freeVars, Γ x = Γ' x) → Γ' ⊢ t : τ := by
   intro J h
   induction J generalizing Γ' with

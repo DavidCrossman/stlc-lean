@@ -4,19 +4,21 @@ import Stlc.Value
 
 namespace Stlc
 
+variable {c : Config}
+
 section
 set_option hygiene false
 
 local infixr:10 " ⟶ " => Step
 
 open Term Syntax in
-inductive Step : Term → Term → Prop
+inductive Step : Term c → Term c → Prop
 | app_cont {τ t₁ t₂ x} : Value t₂ → (t[(λ x : τ, t₁) t₂] ⟶ t[[x := t₂] t₁])
 | app_cong_l {t₁ t₁' t₂} : (t₁ ⟶ t₁') → (t[t₁ t₂] ⟶ t[t₁' t₂])
 | app_cong_r {t₁ t₂ t₂'} : Value t₁ → (t₂ ⟶ t₂') → (t[t₁ t₂] ⟶ t[t₁ t₂'])
-| ite_cont_true {t₁ t₂} : t[if true then t₁ else t₂] ⟶ t₁
-| ite_cont_false {t₁ t₂} : t[if false then t₁ else t₂] ⟶ t₂
-| ite_cong {t₁ t₁' t₂ t₃} :
+| ite_cont_true {t₁ t₂} [c.HasBool] : t[if true then t₁ else t₂] ⟶ t₁
+| ite_cont_false {t₁ t₂} [c.HasBool] : t[if false then t₁ else t₂] ⟶ t₂
+| ite_cong {t₁ t₁' t₂ t₃} [c.HasBool] :
     (t₁ ⟶ t₁') → (t[if t₁ then t₂ else t₃] ⟶ t[if t₁' then t₂ else t₃])
 
 end
@@ -25,22 +27,22 @@ infixr:10 " ⟶ " => Step
 
 open Syntax in
 @[simp]
-theorem Step.var_not {t : Term} {x : TermVar} : ¬(t[xⱽ] ⟶ t) := by
+theorem Step.var_not {t : Term c} {x : TermVar} : ¬(t[xⱽ] ⟶ t) := by
   rintro ⟨⟩
 
 open Syntax in
 @[simp]
-theorem Step.abs_not {τ : Ty} {t₁ t₂ : Term} {x : TermVar} : ¬(t[λ x : τ, t₁] ⟶ t₂) := by
+theorem Step.abs_not {τ : Ty c} {t₁ t₂ : Term c} {x : TermVar} : ¬(t[λ x : τ, t₁] ⟶ t₂) := by
   rintro ⟨⟩
 
 @[simp]
-theorem Step.bool_not {t : Term} {b : Bool} : ¬(.bool b ⟶ t) := by
+theorem Step.bool_not {t : Term c} {b : Bool} [c.HasBool] : ¬(.bool b ⟶ t) := by
   rintro ⟨⟩
 
 
 open Syntax in
 @[simp]
-theorem Step.ite_cont_true_iff {t₁ t₂ t₃ : Term} :
+theorem Step.ite_cont_true_iff {t₁ t₂ t₃ : Term c} [c.HasBool] :
     (t[if true then t₁ else t₂] ⟶ t₃) ↔ (t₁ = t₃) := by
   constructor
   · intro h
@@ -52,7 +54,7 @@ theorem Step.ite_cont_true_iff {t₁ t₂ t₃ : Term} :
 
 open Syntax in
 @[simp]
-theorem Step.ite_cont_false_iff {t₁ t₂ t₃ : Term} :
+theorem Step.ite_cont_false_iff {t₁ t₂ t₃ : Term c} [c.HasBool] :
     (t[if false then t₁ else t₂] ⟶ t₃) ↔ (t₂ = t₃) := by
   constructor
   · intro h
@@ -64,56 +66,56 @@ theorem Step.ite_cont_false_iff {t₁ t₂ t₃ : Term} :
 
 open Syntax in
 @[simp]
-theorem Step.ite_cong_iff {t₁ t₁' t₂ t₃} :
+theorem Step.ite_cong_iff {t₁ t₁' t₂ t₃ : Term c} [c.HasBool] :
     (t[if t₁ then t₂ else t₃] ⟶ t[if t₁' then t₂ else t₃]) ↔ (t₁ ⟶ t₁') := by
   constructor
   · rintro ⟨⟩
     assumption
   · exact ite_cong
 
-def Multistep := Relation.ReflTransGen Step
+def Multistep := Relation.ReflTransGen (@Step c)
 
 infixr:10 " ⟶* " => Multistep
 
 @[refl]
-theorem Multistep.refl {t : Term} : t ⟶* t :=
+theorem Multistep.refl {t : Term c} : t ⟶* t :=
   Relation.ReflTransGen.refl
 
 @[trans]
-theorem Multistep.trans {t₁ t₂ t₃ : Term} : (t₁ ⟶* t₂) → (t₂ ⟶* t₃) → (t₁ ⟶* t₃) :=
+theorem Multistep.trans {t₁ t₂ t₃ : Term c} : (t₁ ⟶* t₂) → (t₂ ⟶* t₃) → (t₁ ⟶* t₃) :=
   Relation.ReflTransGen.trans
 
-theorem Multistep.head {t₁ t₂ t₃ : Term} : (t₁ ⟶ t₂) → (t₂ ⟶* t₃) → (t₁ ⟶* t₃) :=
+theorem Multistep.head {t₁ t₂ t₃ : Term c} : (t₁ ⟶ t₂) → (t₂ ⟶* t₃) → (t₁ ⟶* t₃) :=
   Relation.ReflTransGen.head
 
-theorem Multistep.tail {t₁ t₂ t₃ : Term} : (t₁ ⟶* t₂) → (t₂ ⟶ t₃) → (t₁ ⟶* t₃) :=
+theorem Multistep.tail {t₁ t₂ t₃ : Term c} : (t₁ ⟶* t₂) → (t₂ ⟶ t₃) → (t₁ ⟶* t₃) :=
   Relation.ReflTransGen.tail
 
-theorem Multistep.single {t₁ t₂ : Term} : (t₁ ⟶ t₂) → (t₁ ⟶* t₂) :=
+theorem Multistep.single {t₁ t₂ : Term c} : (t₁ ⟶ t₂) → (t₁ ⟶* t₂) :=
   Relation.ReflTransGen.single
 
 @[elab_as_elim]
-theorem Multistep.head_induction_on {b : Term} {motive : ∀ a, (a ⟶* b) → Prop} {a : Term}
+theorem Multistep.head_induction_on {b : Term c} {motive : ∀ a, (a ⟶* b) → Prop} {a : Term c}
     (h : a ⟶* b) (refl : motive b refl)
     (head : ∀ {a c} (h' : a ⟶ c) (h : c ⟶* b), motive c h → motive a (h.head h')) : motive a h :=
   Relation.ReflTransGen.head_induction_on h refl head
 
-theorem Term.Value.no_step {t t' : Term} : Value t → ¬(t ⟶ t') := by
+theorem Term.Value.no_step {t t' : Term c} : Value t → ¬(t ⟶ t') := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
-theorem Step.not_value {t t' : Term} : (t ⟶ t') → ¬t.Value := by
+theorem Step.not_value {t t' : Term c} : (t ⟶ t') → ¬t.Value := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
 open Syntax in
 @[simp]
-def Term.step : Term → Option Term
+def Term.step : Term c → Option (Term c)
 | t[(λ x : τ, t₁) t₂] => if Value t₂ then subst x t₂ t₁ else t₂.step.map <| app (abs x τ t₁)
 | t[t₁ t₂] => if Value t₁ then t₂.step.map (app t₁) else t₁.step.map (app · t₂)
 | t[if true then t else _] | t[if false then _ else t] => t
 | t[if t₁ then t₂ else t₃] => t₁.step.map (ite · t₂ t₃)
 | _ => none
 
-theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
+theorem Term.step_iff_step (t t' : Term c) : t.step = some t' ↔ (t ⟶ t') := by
   induction t generalizing t' with
   | var | abs | bool => simp
   | app t₁ t₂ ht₁ ht₂ =>
@@ -175,17 +177,17 @@ theorem Term.step_iff_step (t t' : Term) : t.step = some t' ↔ (t ⟶ t') := by
       | ite_cont_true | ite_cont_false => rw [step]
       | ite_cong => cases t₁ <;> simp_all
 
-instance : DecidableRel Step := fun t₁ t₂ =>
+instance : DecidableRel (@Step c) := fun t₁ t₂ =>
   decidable_of_decidable_of_iff <| Term.step_iff_step t₁ t₂
 
-theorem Term.not_step_iff_not_step (t : Term) : t.step = none ↔ ∀ t', ¬(t ⟶ t') := by
+theorem Term.not_step_iff_not_step (t : Term c) : t.step = none ↔ ∀ t', ¬(t ⟶ t') := by
   simp_rw [←step_iff_step]
   constructor <;> intro h
   · simp [h]
   · ext
     simp [h]
 
-def Term.step_n : Term → Nat → Term
+def Term.step_n : Term c → Nat → Term c
 | x, 0 => x
 | t, n + 1 =>
   let t' := t.step_n n
@@ -193,7 +195,7 @@ def Term.step_n : Term → Nat → Term
   | some t'' => t''
   | none => t'
 
-theorem Term.step_n_spec (t : Term) (n : Nat) : t ⟶* t.step_n n := by
+theorem Term.step_n_spec (t : Term c) (n : Nat) : t ⟶* t.step_n n := by
   induction n generalizing t with
   | zero => rfl
   | succ n ih =>
@@ -210,11 +212,11 @@ theorem Term.step_n_spec (t : Term) (n : Nat) : t ⟶* t.step_n n := by
       rw [h]
       exact ih t
 
-theorem Term.reduce_n {t t' : Term} (n : Nat) (h : t.step_n n = t' := by rfl) : t ⟶* t' := by
+theorem Term.reduce_n {t t' : Term c} (n : Nat) (h : t.step_n n = t' := by rfl) : t ⟶* t' := by
   rw [←h]
   exact t.step_n_spec n
 
-theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t₂ := by
+theorem Step.unique {t t₁ t₂ : Term c} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t₂ := by
   intro h₁ h₂
   induction h₁ generalizing t₂ with
   | app_cont v => cases h₂ with
@@ -234,7 +236,7 @@ theorem Step.unique {t t₁ t₂} : (t ⟶ t₁) → (t ⟶ t₂) → t₁ = t�
     | ite_cont_true | ite_cont_false => cases h₃
     | ite_cong h₄ => rw [ih h₄]
 
-theorem Multistep.cont_iff {t t₁ t₂ : Term} (ht : t.Value) (h : t₁ ⟶ t₂) :
+theorem Multistep.cont_iff {t t₁ t₂ : Term c} (ht : t.Value) (h : t₁ ⟶ t₂) :
     (t₁ ⟶* t) ↔ (t₂ ⟶* t) := by
   constructor
   · intro h₂

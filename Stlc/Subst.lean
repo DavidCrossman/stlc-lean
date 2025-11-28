@@ -3,6 +3,8 @@ import Stlc.FreeVars
 
 namespace Stlc
 
+variable {c : Config}
+
 class Subst (α β γ : Type*) where
   subst : α → β → γ → γ
 
@@ -43,20 +45,20 @@ local macro_rules
 | `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(Term.subst $x t[$s] t[$t])
 
 @[simp]
-def Term.subst (x : TermVar) (s t : Term) : Term := match t with
+def Term.subst (x : TermVar) (s t : Term c) : Term c := match t with
 | t[yⱽ] => if x = y then s else t
 | t[λ y : τ, t'] => if x = y then t else t[λ y : τ, [x := s] t']
 | t[t₁ t₂] => t[([x := s] t₁) ([x := s] t₂)]
-| .bool _ => t
+| bool _ => t
 | t[if t₁ then t₂ else t₃] => t[if [x := s] t₁ then [x := s] t₂ else [x := s] t₃]
 
 end
 
-instance : Subst TermVar Term Term :=
+instance : Subst TermVar (Term c) (Term c) :=
   ⟨Term.subst⟩
 
 @[simp]
-theorem Term.subst_eq_of_notMem {x : TermVar} {t₁ t₂ : Term} :
+theorem Term.subst_eq_of_notMem {x : TermVar} {t₁ t₂ : Term c} :
     x ∉ t₂.freeVars → subst x t₁ t₂ = t₂ := by
   intro h
   induction t₂ with rw [subst]
@@ -76,7 +78,7 @@ theorem Term.subst_eq_of_notMem {x : TermVar} {t₁ t₂ : Term} :
     obtain ⟨⟨h₁, h₂⟩, h₃⟩ := h
     rw [ih₁ h₁, ih₂ h₂, ih₃ h₃]
 
-theorem Term.subst_comm {t₁ t₂ t : Term} {x₁ x₂ : TermVar} :
+theorem Term.subst_comm {t₁ t₂ t : Term c} {x₁ x₂ : TermVar} :
     x₁ ≠ x₂ → x₁ ∉ freeVars t₂ → x₂ ∉ freeVars t₁ →
     subst x₂ t₂ (subst x₁ t₁ t) = subst x₁ t₁ (subst x₂ t₂ t) := by
   intro _ h₁ h₂
@@ -99,7 +101,7 @@ theorem Term.subst_comm {t₁ t₂ t : Term} {x₁ x₂ : TermVar} :
   | ite _ _ _ ih₁ ih₂ ih₃ => rw [ih₁, ih₂, ih₃]
 
 @[simp]
-theorem Term.freeVars_subst_eq_of_closed {x : TermVar} {t₁ t₂ : Term} :
+theorem Term.freeVars_subst_eq_of_closed {x : TermVar} {t₁ t₂ : Term c} :
     FreeVars.Closed t₁ TermVar → (subst x t₁ t₂).freeVars = t₂.freeVars \ {x} := fun _ ↦ by
   induction t₂ with rw [subst, freeVars]
   | var =>
@@ -116,7 +118,7 @@ theorem Term.freeVars_subst_eq_of_closed {x : TermVar} {t₁ t₂ : Term} :
   | ite _ _ _ ih₁ ih₂ ih₃ =>
     rw [freeVars, ih₁, ih₂, ih₃, Finset.union_sdiff_distrib, Finset.union_sdiff_distrib]
 
-instance : LawfulSubst TermVar Term Term :=
+instance : LawfulSubst TermVar (Term c) (Term c) :=
   ⟨Term.subst_eq_of_notMem, Term.subst_comm, Term.freeVars_subst_eq_of_closed⟩
 
 namespace Syntax
