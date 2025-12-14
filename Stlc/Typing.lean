@@ -104,4 +104,22 @@ scoped macro_rules
 
 end Syntax
 
+open Syntax in
+@[simp]
+def Term.typeCheck (Γ : Context c) : Term c → Option (Ty c)
+| t[xⱽ] => Γ x
+| t[λ x : τ, t] => do
+  let τ' ← t.typeCheck (Γ.update x τ)
+  τ[τ → τ']
+| t[t₁ t₂] => do
+  let τ[τ₁ → τ₂] ← t₁.typeCheck Γ | failure
+  unless (← t₂.typeCheck Γ) = τ₁ do failure
+  τ₂
+| bool _ => some .bool
+| t[if t₁ then t₂ else t₃] => do
+  let .bool ← t₁.typeCheck Γ | failure
+  let τ₂ ← t₂.typeCheck Γ
+  unless (← t₃.typeCheck Γ) = τ₂ do failure
+  τ₂
+
 end Stlc
