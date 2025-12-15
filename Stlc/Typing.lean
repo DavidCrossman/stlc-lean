@@ -122,4 +122,41 @@ def Term.typeCheck (Γ : Context c) : Term c → Option (Ty c)
   unless (← t₃.typeCheck Γ) = τ₂ do failure
   τ₂
 
+theorem Term.typeCheck_sound {Γ : Context c} {t : Term c} {τ : Ty c} :
+    t.typeCheck Γ = some τ → Γ ⊢ t : τ := by
+  intro h
+  induction t generalizing Γ τ with rw [Term.typeCheck] at h
+  | var => exact Judgement.var h
+  | abs _ _ _ ih =>
+    rw [Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+    obtain ⟨_, h, ⟨⟩⟩ := h
+    exact Judgement.abs (ih h)
+  | app _ _ ih₁ ih₂ =>
+    rw [Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+    obtain ⟨⟨⟩, h₁, h₂⟩ := h
+    · contradiction
+    · rw [Option.bind_eq_some_iff] at h₂
+      obtain ⟨_, h₂, h₃⟩ := h₂
+      split_ifs at h₃ with h₄
+      · cases h₃
+        subst h₄
+        exact Judgement.app (ih₁ h₁) (ih₂ h₂)
+      · contradiction
+  | bool b =>
+    cases h
+    exact Judgement.bool b
+  | ite _ _ _ ih₁ ih₂ ih₃ =>
+    rw [Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+    obtain ⟨⟨⟩, h₁, h₂⟩ := h
+    · rw [Option.bind_eq_some_iff] at h₂
+      obtain ⟨_, h₂, h₃⟩ := h₂
+      rw [Option.bind_eq_some_iff] at h₃
+      obtain ⟨_, h₃, h₄⟩ := h₃
+      split_ifs at h₄ with h₅
+      · cases h₄
+        subst h₅
+        exact Judgement.ite (ih₁ h₁) (ih₂ h₂) (ih₃ h₃)
+      · contradiction
+    · contradiction
+
 end Stlc
