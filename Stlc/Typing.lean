@@ -159,4 +159,14 @@ theorem Term.typeCheck_sound {Γ : Context c} {t : Term c} {τ : Ty c} :
       · contradiction
     · contradiction
 
+theorem Term.typeCheck_complete {Γ : Context c} {t : Term c} {τ : Ty c} :
+    (Γ ⊢ t : τ) → t.typeCheck Γ = some τ := by
+  intro J
+  induction J with
+  | var h => exact h
+  | abs _ ih => simp [ih]
+  | app _ _ ih₁ ih₂ => simp [ih₁, ih₂]
+  | bool => rfl
+  | ite _ _ _ ih₁ ih₂ ih₃ => simp [ih₁, ih₂, ih₃]
+
 end Stlc
