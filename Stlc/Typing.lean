@@ -84,7 +84,7 @@ inductive Judgement (c : Config) : Context c → Term c → Ty c → Prop
 | var {Γ x τ} : Γ x = some τ → Γ ⊢ xⱽ : τ
 | abs {Γ x τ₁ τ₂ t} : (Γ; x ↦ τ₂ ⊢ t : τ₁) → Γ ⊢ λ x : τ₂, t : τ₂ → τ₁
 | app {Γ τ τ' t₁ t₂} : (Γ ⊢ t₁ : τ → τ') → (Γ ⊢ t₂ : τ) → Γ ⊢ t₁ t₂ : τ'
-| bool {Γ} b [c.HasBool] : Γ ⊢ $(.bool b) : Bool
+| bool {Γ} b [c.HasBool] : Γ ⊢ #.bool b# : Bool
 | ite {Γ τ t₁ t₂ t₃} [c.HasBool] :
   (Γ ⊢ t₁ : Bool) → (Γ ⊢ t₂ : τ) → (Γ ⊢ t₃ : τ) → Γ ⊢ if t₁ then t₂ else t₃ : τ
 

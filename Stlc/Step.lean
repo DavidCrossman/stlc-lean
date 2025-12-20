@@ -4,6 +4,8 @@ import Stlc.Value
 
 namespace Stlc
 
+open Syntax
+
 variable {c : Config}
 
 section
@@ -11,7 +13,7 @@ set_option hygiene false
 
 local infixr:10 " ⟶ " => Step
 
-open Term Syntax in
+open Term in
 inductive Step : Term c → Term c → Prop
 | app_cont {τ t₁ t₂ x} : Value t₂ → (t[(λ x : τ, t₁) t₂] ⟶ t[[x := t₂] t₁])
 | app_cong_l {t₁ t₁' t₂} : (t₁ ⟶ t₁') → (t[t₁ t₂] ⟶ t[t₁' t₂])
@@ -25,12 +27,10 @@ end
 
 infixr:10 " ⟶ " => Step
 
-open Syntax in
 @[simp]
 theorem Step.var_not {t : Term c} {x : TermVar} : ¬(t[xⱽ] ⟶ t) := by
   rintro ⟨⟩
 
-open Syntax in
 @[simp]
 theorem Step.abs_not {τ : Ty c} {t₁ t₂ : Term c} {x : TermVar} : ¬(t[λ x : τ, t₁] ⟶ t₂) := by
   rintro ⟨⟩
@@ -39,8 +39,6 @@ theorem Step.abs_not {τ : Ty c} {t₁ t₂ : Term c} {x : TermVar} : ¬(t[λ x 
 theorem Step.bool_not {t : Term c} {b : Bool} [c.HasBool] : ¬(.bool b ⟶ t) := by
   rintro ⟨⟩
 
-
-open Syntax in
 @[simp]
 theorem Step.ite_cont_true_iff {t₁ t₂ t₃ : Term c} [c.HasBool] :
     (t[if true then t₁ else t₂] ⟶ t₃) ↔ (t₁ = t₃) := by
@@ -52,7 +50,6 @@ theorem Step.ite_cont_true_iff {t₁ t₂ t₃ : Term c} [c.HasBool] :
   · intro rfl
     exact ite_cont_true
 
-open Syntax in
 @[simp]
 theorem Step.ite_cont_false_iff {t₁ t₂ t₃ : Term c} [c.HasBool] :
     (t[if false then t₁ else t₂] ⟶ t₃) ↔ (t₂ = t₃) := by
@@ -64,7 +61,6 @@ theorem Step.ite_cont_false_iff {t₁ t₂ t₃ : Term c} [c.HasBool] :
   · intro rfl
     exact ite_cont_false
 
-open Syntax in
 @[simp]
 theorem Step.ite_cong_iff {t₁ t₁' t₂ t₃ : Term c} [c.HasBool] :
     (t[if t₁ then t₂ else t₃] ⟶ t[if t₁' then t₂ else t₃]) ↔ (t₁ ⟶ t₁') := by
@@ -106,7 +102,6 @@ theorem Term.Value.no_step {t t' : Term c} : Value t → ¬(t ⟶ t') := by
 theorem Step.not_value {t t' : Term c} : (t ⟶ t') → ¬t.Value := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
-open Syntax in
 @[simp]
 def Term.step : Term c → Option (Term c)
 | t[(λ x : τ, t₁) t₂] => if Value t₂ then subst x t₂ t₁ else t₂.step.map <| app (abs x τ t₁)
