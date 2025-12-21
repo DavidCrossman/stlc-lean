@@ -169,4 +169,11 @@ theorem Term.typeCheck_complete {Γ : Context c} {t : Term c} {τ : Ty c} :
   | bool => rfl
   | ite _ _ _ ih₁ ih₂ ih₃ => simp [ih₁, ih₂, ih₃]
 
+theorem Term.typeCheck_iff_judgement {Γ : Context c} {t : Term c} {τ : Ty c} :
+    t.typeCheck Γ = some τ ↔ (Γ ⊢ t : τ) :=
+  ⟨Term.typeCheck_sound, Term.typeCheck_complete⟩
+
+instance {Γ : Context c} {t : Term c} {τ : Ty c} : Decidable (Γ ⊢ t : τ) :=
+  decidable_of_decidable_of_iff Term.typeCheck_iff_judgement
+
 end Stlc
