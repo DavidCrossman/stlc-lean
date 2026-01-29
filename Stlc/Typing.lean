@@ -1,4 +1,5 @@
 import Mathlib.Logic.Function.Basic
+import Mathlib.Tactic.SplitIfs
 import Stlc.Basic
 import Stlc.Syntax
 
