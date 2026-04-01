@@ -202,7 +202,7 @@ theorem Term.step_n_spec (t : Term c) (n : Nat) : t ⟶* t.step_n n := by
       · rw [ht]
         exact Multistep.single h'
       · exact Multistep.tail (ih t) h'
-    · push_neg at h
+    · push Not at h
       rw [←not_step_iff_not_step] at h
       rw [h]
       exact ih t

@@ -149,7 +149,7 @@ theorem typeable_empty_closed {τ : Ty c} {t : Term c} :
     (∅ ⊢ t : τ) → FreeVars.Closed t TermVar := by
   contrapose
   rw [FreeVars.Closed, Finset.eq_empty_iff_forall_notMem]
-  push_neg
+  push Not
   intro ⟨x, h⟩ J
   have h' := free_in_context h J
   simp at h'
