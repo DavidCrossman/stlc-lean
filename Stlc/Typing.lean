@@ -1,16 +1,20 @@
+module
+
+public import Stlc.Syntax
 import Mathlib.Logic.Function.Basic
 import Mathlib.Tactic.SplitIfs
-import Stlc.Basic
-import Stlc.Syntax
+
+public section
 
 namespace Stlc
 
 variable {c : Config}
 
+@[expose]
 def Context (c : Config) : Type := TermVar → Option (Ty c)
 
 @[ext]
-def Context.ext {Γ₁ Γ₂ : Context c} (h : ∀ x, Γ₁ x = Γ₂ x) : Γ₁ = Γ₂ :=
+theorem Context.ext {Γ₁ Γ₂ : Context c} (h : ∀ x, Γ₁ x = Γ₂ x) : Γ₁ = Γ₂ :=
   funext h
 
 instance : EmptyCollection (Context c) :=
@@ -19,6 +23,7 @@ instance : EmptyCollection (Context c) :=
 def Context.update (Γ : Context c) (x : TermVar) (τ : Ty c) : Context c :=
   Function.update Γ x (some τ)
 
+@[expose]
 def Context.IncludedIn (Γ Γ' : Context c) : Prop :=
   ∀ ⦃x τ⦄, Γ x = some τ → Γ' x = some τ
 
@@ -91,7 +96,7 @@ inductive Judgement (c : Config) : Context c → Term c → Ty c → Prop
 
 end
 
-@[match_pattern]
+@[expose, match_pattern]
 notation Γ " ⊢ " t " : " τ => Judgement _ Γ t τ
 
 namespace Syntax

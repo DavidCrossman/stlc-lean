@@ -1,8 +1,10 @@
-import Stlc.Basic
-import Stlc.Syntax
-import Stlc.FreeVars
-import Stlc.Subst
-import Stlc.Value
-import Stlc.Step
-import Stlc.Typing
-import Stlc.Property
+module
+
+public import Stlc.Basic
+public import Stlc.Syntax
+public import Stlc.FreeVars
+public import Stlc.Subst
+public import Stlc.Value
+public import Stlc.Step
+public import Stlc.Typing
+public import Stlc.Property

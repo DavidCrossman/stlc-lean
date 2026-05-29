@@ -1,4 +1,8 @@
-import Stlc.Basic
+module
+
+public import Stlc.Basic
+
+public section
 
 namespace Stlc.Syntax
 

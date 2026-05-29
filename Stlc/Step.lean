@@ -1,6 +1,10 @@
+module
+
+public import Stlc.Subst
+public import Stlc.Value
 import Mathlib.Logic.Relation
-import Stlc.Subst
-import Stlc.Value
+
+public section
 
 namespace Stlc
 
@@ -102,7 +106,7 @@ theorem Term.Value.no_step {t t' : Term c} : Value t → ¬(t ⟶ t') := by
 theorem Step.not_value {t t' : Term c} : (t ⟶ t') → ¬t.Value := by
   rintro ⟨⟩ <;> rintro ⟨⟩
 
-@[simp]
+@[expose, simp]
 def Term.step : Term c → Option (Term c)
 | t[(λ x : τ, t₁) t₂] => if Value t₂ then subst x t₂ t₁ else t₂.step.map <| app (abs x τ t₁)
 | t[t₁ t₂] => if Value t₁ then t₂.step.map (app t₁) else t₁.step.map (app · t₂)

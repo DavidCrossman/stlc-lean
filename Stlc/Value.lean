@@ -1,5 +1,10 @@
+module
+
+public import Stlc.Basic
 import Mathlib.Tactic.Common
 import Stlc.Syntax
+
+public section
 
 namespace Stlc.Term
 

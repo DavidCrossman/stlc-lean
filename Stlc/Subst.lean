@@ -1,5 +1,10 @@
+module
+
+public import Stlc.FreeVars
+public import Stlc.Syntax
 import Mathlib.Data.Finset.Basic
-import Stlc.FreeVars
+
+public section
 
 namespace Stlc
 
@@ -44,7 +49,7 @@ local syntax:lead "[" ident " := " stlc_term "]" stlc_term:max : stlc_term
 local macro_rules
 | `(t[ [$x:ident := $s:stlc_term] $t:stlc_term ]) => `(Term.subst $x t[$s] t[$t])
 
-@[simp]
+@[expose, simp]
 def Term.subst (x : TermVar) (s t : Term c) : Term c := match t with
 | t[yⱽ] => if x = y then s else t
 | t[λ y : τ, t'] => if x = y then t else t[λ y : τ, [x := s] t']

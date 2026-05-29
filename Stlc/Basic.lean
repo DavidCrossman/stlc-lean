@@ -1,3 +1,7 @@
+module
+
+public section
+
 namespace Stlc
 
 structure Config : Type where
@@ -18,6 +22,7 @@ end Config
 instance : DecidablePred Config.HasBool := fun c ↦
   decidable_of_bool c.hasBool ⟨fun h ↦ { hasBool := h }, fun h ↦ h.hasBool⟩
 
+@[expose]
 def TermVar : Type := String
 deriving DecidableEq
 

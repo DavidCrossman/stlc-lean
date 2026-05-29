@@ -1,6 +1,9 @@
-import Stlc.FreeVars
-import Stlc.Step
-import Stlc.Typing
+module
+
+public import Stlc.Step
+public import Stlc.Typing
+
+public section
 
 namespace Stlc
 
@@ -92,6 +95,7 @@ theorem preservation {t t' : Term c} {τ : Ty c} : (∅ ⊢ t : τ) → (t ⟶ t
     | ite_cont_false => exact J₂
     | ite_cong h => exact Judgement.ite (ih rfl h) J₁ J₂
 
+@[expose]
 def Term.Stuck (t : Term c) : Prop := ¬t.Value ∧ ¬∃ t', t ⟶ t'
 
 theorem soundness {t t' : Term c} {τ : Ty c} : (∅ ⊢ t : τ) → (t ⟶* t') → ¬t'.Stuck := by

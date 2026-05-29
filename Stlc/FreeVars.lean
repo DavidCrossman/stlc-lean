@@ -1,6 +1,10 @@
-import Mathlib.Data.Finset.SDiff
-import Stlc.Basic
+module
+
+public import Mathlib.Data.Finset.SDiff
+public import Stlc.Basic
 import Stlc.Syntax
+
+public section
 
 namespace Stlc
 
@@ -13,16 +17,16 @@ class FreeVars (α β : Type*) [DecidableEq β] where
 
 attribute [simp] FreeVars.freeVars
 
-@[simp]
+@[expose, simp]
 def FreeVars.Closed {α : Type*} (a : α) (β : Type*) [DecidableEq β] [FreeVars α β] : Prop :=
   (freeVars a : Finset β) = ∅
 
-def FreeVars.Closed.notMem_freeVars {α β : Type*} {a : α} [DecidableEq β] [FreeVars α β]
+theorem FreeVars.Closed.notMem_freeVars {α β : Type*} {a : α} [DecidableEq β] [FreeVars α β]
     (hc : Closed a β) (b : β) : b ∉ freeVars a := by
   rw [hc]
   exact Finset.notMem_empty b
 
-@[simp]
+@[expose, simp]
 def Term.freeVars : Term c → Finset TermVar
 | t[xⱽ] => {x}
 | t[λ x : _, t] => t.freeVars \ {x}
