@@ -1,7 +1,7 @@
 module
 
 public import Stlc.Syntax
-import Mathlib.Logic.Function.Basic
+public import Mathlib.Logic.Function.Basic
 import Mathlib.Tactic.SplitIfs
 
 public section

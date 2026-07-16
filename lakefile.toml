@@ -14,7 +14,7 @@ weak.linter.style.header = false
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-version = "git#v4.31.0"
+version = "git#v4.32.0"
 
 [[lean_lib]]
 name = "Stlc"
