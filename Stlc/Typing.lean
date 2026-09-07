@@ -10,7 +10,7 @@ namespace Stlc
 
 variable {c : Config}
 
-@[expose]
+@[expose, implicit_reducible]
 def Context (c : Config) : Type := TermVar → Option (Ty c)
 
 @[ext]
