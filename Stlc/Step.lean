@@ -124,20 +124,20 @@ theorem Term.step_iff_step (t t' : Term c) : t.step = some t' ↔ (t ⟶ t') := 
       | abs => cases t₂ with
         | var => simp at h
         | bool =>
-          rw [step, if_pos Value.bool, Option.some.injEq] at h
+          rw [step, ite_eq_left Value.bool, Option.some.injEq] at h
           rw [←h]
           exact Step.app_cont Value.bool
         | abs =>
-          rw [step, if_pos Value.abs, Option.some.injEq] at h
+          rw [step, ite_eq_left Value.abs, Option.some.injEq] at h
           rw [←h]
           exact Step.app_cont Value.abs
         | app =>
-          rw [step, if_neg Value.app_not, Option.map_eq_some_iff] at h
+          rw [step, ite_eq_right Value.app_not, Option.map_eq_some_iff] at h
           obtain ⟨t₃, h₁, h₂⟩ := h
           rw [←h₂]
           exact Step.app_cong_r Value.abs ((ht₂ t₃).mp h₁)
         | ite =>
-          rw [step, if_neg Value.ite_not, Option.map_eq_some_iff] at h
+          rw [step, ite_eq_right Value.ite_not, Option.map_eq_some_iff] at h
           obtain ⟨t₃, h₁, h₂⟩ := h
           rw [←h₂]
           exact Step.app_cong_r Value.abs ((ht₂ t₃).mp h₁)

@@ -69,11 +69,11 @@ theorem Term.subst_eq_of_notMem {x : TermVar} {t₁ t₂ : Term c} :
   induction t₂ with rw [subst]
   | var =>
     rw [freeVars, Finset.notMem_singleton] at h
-    rw [if_neg h]
+    rw [ite_eq_right h]
   | abs _ _ t ih =>
     rw [freeVars, Finset.mem_sdiff, Finset.mem_singleton, not_and_not_right] at h
     by_cases hx : x ∈ t.freeVars
-    · rw [if_pos (h hx)]
+    · rw [ite_eq_left (h hx)]
     · rw [ih hx, ite_id]
   | app _ _ ih₁ ih₂ =>
     rw [freeVars, Finset.notMem_union] at h
@@ -92,16 +92,16 @@ theorem Term.subst_comm {t₁ t₂ t : Term c} {x₁ x₂ : TermVar} :
     split_ifs with hy₁ hy₂ hy₂
     · rw [←hy₂] at hy₁
       contradiction
-    · rw [subst, if_pos hy₁, subst_eq_of_notMem h₂]
-    · rw [subst, if_pos hy₂, subst_eq_of_notMem h₁]
-    · rw [subst, subst, if_neg hy₂, if_neg hy₁]
+    · rw [subst, ite_eq_left hy₁, subst_eq_of_notMem h₂]
+    · rw [subst, ite_eq_left hy₂, subst_eq_of_notMem h₁]
+    · rw [subst, subst, ite_eq_right hy₂, ite_eq_right hy₁]
   | abs _ _ _ ih =>
     split_ifs with hy₁ hy₂ hy₂
     · rw [←hy₂] at hy₁
       contradiction
-    · rw [subst, subst, if_pos hy₁, if_neg hy₂]
-    · rw [subst, subst, if_neg hy₁, if_pos hy₂]
-    · rw [subst, subst, if_neg hy₁, if_neg hy₂, ih]
+    · rw [subst, subst, ite_eq_left hy₁, ite_eq_right hy₂]
+    · rw [subst, subst, ite_eq_right hy₁, ite_eq_left hy₂]
+    · rw [subst, subst, ite_eq_right hy₁, ite_eq_right hy₂, ih]
   | app _ _ ih₁ ih₂ => rw [ih₁, ih₂]
   | ite _ _ _ ih₁ ih₂ ih₃ => rw [ih₁, ih₂, ih₃]
 

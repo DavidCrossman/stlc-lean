@@ -40,7 +40,7 @@ theorem Context.includedIn_update {Γ Γ' : Context c} {x : TermVar} {τ : Ty c}
   rw [←h₂]
   split_ifs with hyx
   · rfl
-  · rw [if_neg hyx] at h₂
+  · rw [ite_eq_right hyx] at h₂
     rw [h₁ h₂, h₂]
 
 @[simp]
